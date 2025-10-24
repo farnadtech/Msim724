@@ -8,18 +8,80 @@ import {
     transactions as mockTransactions 
 } from '../data/mockData';
 
-// --- Local In-Memory "Database" ---
-// We create copies to avoid modifying the imported mock data directly,
-// simulating a more realistic API where data is mutable.
-let users: User[] = JSON.parse(JSON.stringify(mockUsers));
-let simCards: SimCard[] = JSON.parse(JSON.stringify(mockSimCards));
-let packages: Package[] = JSON.parse(JSON.stringify(mockPackages));
-let transactions: Transaction[] = JSON.parse(JSON.stringify(mockTransactions));
-let nextUserId = users.length + 1;
-let nextSimId = simCards.length + 1;
-let nextTransactionId = transactions.length + 1;
-let nextPackageId = packages.length + 1;
 
+// --- Local "Database" State ---
+let users: User[];
+let simCards: SimCard[];
+let packages: Package[];
+let transactions: Transaction[];
+let nextUserId: number;
+let nextSimId: number;
+let nextTransactionId: number;
+let nextPackageId: number;
+let tempUsers: { [key: string]: User } = {}; // For signup process
+
+
+// --- Persistence Helpers ---
+const saveDataToLocalStorage = () => {
+    try {
+        localStorage.setItem('msim724-users', JSON.stringify(users));
+        localStorage.setItem('msim724-simCards', JSON.stringify(simCards));
+        localStorage.setItem('msim724-packages', JSON.stringify(packages));
+        localStorage.setItem('msim724-transactions', JSON.stringify(transactions));
+        localStorage.setItem('msim724-tempUsers', JSON.stringify(tempUsers));
+        const nextIds = { nextUserId, nextSimId, nextTransactionId, nextPackageId };
+        localStorage.setItem('msim724-nextIds', JSON.stringify(nextIds));
+    } catch (error) {
+        console.error("Could not save data to localStorage", error);
+    }
+};
+
+const initializeDatabase = () => {
+    const storedUsers = localStorage.getItem('msim724-users');
+    const storedSimCards = localStorage.getItem('msim724-simCards');
+    const storedPackages = localStorage.getItem('msim724-packages');
+    const storedTransactions = localStorage.getItem('msim724-transactions');
+    const storedTempUsers = localStorage.getItem('msim724-tempUsers');
+    const storedNextIds = localStorage.getItem('msim724-nextIds');
+
+    if (storedUsers && storedSimCards && storedPackages && storedTransactions && storedNextIds) {
+        try {
+            users = JSON.parse(storedUsers);
+            simCards = JSON.parse(storedSimCards);
+            packages = JSON.parse(storedPackages);
+            transactions = JSON.parse(storedTransactions);
+            tempUsers = JSON.parse(storedTempUsers || '{}');
+            const ids = JSON.parse(storedNextIds);
+            nextUserId = ids.nextUserId;
+            nextSimId = ids.nextSimId;
+            nextTransactionId = ids.nextTransactionId;
+            nextPackageId = ids.nextPackageId;
+        } catch (e) {
+             // If parsing fails, reset to mock data
+            console.error("Failed to parse data from localStorage, resetting.", e);
+            resetToMockData();
+        }
+    } else {
+        // First time load or cleared storage, initialize from mock data
+        resetToMockData();
+    }
+};
+
+const resetToMockData = () => {
+    users = JSON.parse(JSON.stringify(mockUsers));
+    simCards = JSON.parse(JSON.stringify(mockSimCards));
+    packages = JSON.parse(JSON.stringify(mockPackages));
+    transactions = JSON.parse(JSON.stringify(mockTransactions));
+    nextUserId = (users.length > 0 ? Math.max(...users.map(u => u.id)) : 0) + 1;
+    nextSimId = (simCards.length > 0 ? Math.max(...simCards.map(s => parseInt(s.id))) : 0) + 1;
+    nextTransactionId = (transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) : 0) + 1;
+    nextPackageId = (packages.length > 0 ? Math.max(...packages.map(p => p.id)) : 0) + 1;
+    tempUsers = {};
+    saveDataToLocalStorage();
+};
+
+// Initialize on module load
+initializeDatabase();
 
 // --- Helper Functions ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -62,6 +124,7 @@ const api = {
         // Simulate sending OTP by setting it on the user object
         user.otp = '1234';
         user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        saveDataToLocalStorage();
     },
 
     async verifyOtpAndLogin(identifier: string, otp: string): Promise<User> {
@@ -75,6 +138,7 @@ const api = {
         }
         user.otp = undefined;
         user.otpExpiry = undefined;
+        saveDataToLocalStorage();
         return JSON.parse(JSON.stringify(user));
     },
     
@@ -91,7 +155,6 @@ const api = {
             throw new Error('کاربری با این ایمیل/شماره موبایل قبلا ثبت نام کرده است.');
         }
 
-        // Create a temporary user object to hold signup data and OTP
         const tempUser: User = {
             id: -1, // Temporary ID
             name: signupDetails.name,
@@ -103,15 +166,13 @@ const api = {
             otp: '1234',
             otpExpiry: new Date(Date.now() + 5 * 60 * 1000).toISOString()
         };
-        // In a real scenario, you'd store this temporarily (e.g., Redis). Here we'll just add it to the user list with a temp flag.
-        // For simplicity, we'll find it back by identifier. We'll store it on a temporary object.
-        (window as any).tempUsers = (window as any).tempUsers || {};
-        (window as any).tempUsers[identifier] = tempUser;
+        tempUsers[identifier] = tempUser;
+        saveDataToLocalStorage();
     },
     
     async verifyOtpAndRegister(identifier: string, otp: string): Promise<User> {
         await delay(500);
-        const tempUser = (window as any).tempUsers?.[identifier];
+        const tempUser = tempUsers[identifier];
         if (!tempUser) {
             throw new Error('اطلاعات ثبت نام یافت نشد. لطفا دوباره تلاش کنید.');
         }
@@ -129,7 +190,8 @@ const api = {
             blockedBalance: 0,
         };
         users.push(newUser);
-        delete (window as any).tempUsers[identifier];
+        delete tempUsers[identifier];
+        saveDataToLocalStorage();
 
         return JSON.parse(JSON.stringify(newUser));
     },
@@ -157,6 +219,7 @@ const api = {
             date: new Date().toISOString()
         };
         transactions.push(newTransaction);
+        saveDataToLocalStorage();
     },
 
     async addSimCard(simData: Omit<SimCard, 'id' | 'sellerId' | 'status'>, sellerId: number): Promise<void> {
@@ -189,6 +252,7 @@ const api = {
             ...simData
         };
         simCards.push(newSim);
+        saveDataToLocalStorage();
     },
 
     async purchaseSim(simId: string, buyerId: number): Promise<void> {
@@ -244,6 +308,7 @@ const api = {
             description: `فروش سیمکارت ${sim.number}`,
             date: new Date().toISOString()
         });
+        saveDataToLocalStorage();
     },
 
     async placeBid(simId: string, bidderId: number, amount: number): Promise<void> {
@@ -283,6 +348,7 @@ const api = {
             date: new Date().toISOString()
         };
         sim.auctionDetails.bids.push(newBid);
+        saveDataToLocalStorage();
     },
 
     async updateUserPackage(userId: number, packageId: number): Promise<void> {
@@ -293,6 +359,7 @@ const api = {
         } else {
             throw new Error('کاربر یافت نشد.');
         }
+        saveDataToLocalStorage();
     },
     
     async updateUser(userId: number, updatedData: Partial<User>): Promise<void> {
@@ -303,6 +370,7 @@ const api = {
         } else {
             throw new Error('User not found.');
         }
+        saveDataToLocalStorage();
     },
     
     async updateSimCard(simId: string, updatedData: Partial<SimCard>): Promise<void> {
@@ -313,6 +381,7 @@ const api = {
         } else {
             throw new Error('SimCard not found.');
         }
+        saveDataToLocalStorage();
     },
     
     async addPackage(packageData: Omit<Package, 'id'>): Promise<void> {
@@ -322,6 +391,7 @@ const api = {
             ...packageData
         };
         packages.push(newPackage);
+        saveDataToLocalStorage();
     },
     
     async updatePackage(packageId: number, updatedData: Partial<Package>): Promise<void> {
@@ -332,6 +402,7 @@ const api = {
         } else {
             throw new Error('Package not found.');
         }
+        saveDataToLocalStorage();
     },
 
 };

@@ -397,23 +397,23 @@ const PackagePurchases = () => {
     );
 };
 
+// FIX: Moved NavItem component outside of AdminDashboard to prevent re-creation on render and fix children prop error.
+const NavItem = ({ to, children, end = false }: { to: string, children: React.ReactNode, end?: boolean }) => (
+    <NavLink
+        to={to}
+        // FIX: The `end` prop and `className` function are v6 features.
+        // Replaced `exact` and `activeClassName` for v6 compatibility.
+        end={end}
+        className={({isActive}) => 
+            "block px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" +
+            (isActive ? " bg-blue-600 text-white" : "")
+        }
+    >
+        {children}
+    </NavLink>
+);
 
 const AdminDashboard: React.FC = () => {
-    const NavItem = ({ to, children, end = false }: { to: string, children: React.ReactNode, end?: boolean }) => (
-        <NavLink
-            to={to}
-            // FIX: The `end` prop and `className` function are v6 features.
-            // Replaced `exact` and `activeClassName` for v6 compatibility.
-            end={end}
-            className={({isActive}) => 
-                "block px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" +
-                (isActive ? " bg-blue-600 text-white" : "")
-            }
-        >
-            {children}
-        </NavLink>
-    );
-
   const sidebar = (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
       <h3 className="font-bold text-lg mb-4">پنل مدیریت</h3>
