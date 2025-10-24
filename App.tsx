@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { useAuth } from './hooks/useAuth';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -32,56 +33,58 @@ const PrivateRoute: React.FC<{ children: React.ReactElement; roles: string[] }> 
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <DataProvider>
-          <HashRouter>
-            <div className="flex flex-col min-h-screen">
-              <Header />
-              <main className="flex-grow">
-                {/* FIX: Replaced v5 <Switch> with v6 <Routes> and updated Route syntax. */}
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/sim/:id" element={<SimDetailsPage />} />
-                  <Route path="/rond-numbers" element={<RondNumbersPage />} />
-                  <Route path="/auctions" element={<AuctionsPage />} />
-                  <Route path="/packages" element={<PackagesPage />} />
-                  
-                  <Route
-                    path="/admin/*"
-                    element={
-                      <PrivateRoute roles={['admin']}>
-                        <AdminDashboard />
-                      </PrivateRoute>
-                    }
-                  />
-                  <Route
-                    path="/seller/*"
-                    element={
-                      <PrivateRoute roles={['seller']}>
-                        <SellerDashboard />
-                      </PrivateRoute>
-                    }
-                  />
-                  <Route
-                    path="/buyer/*"
-                    element={
-                      <PrivateRoute roles={['buyer']}>
-                        <BuyerDashboard />
-                      </PrivateRoute>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          </HashRouter>
-        </DataProvider>
-      </NotificationProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <DataProvider>
+            <HashRouter>
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow">
+                  {/* FIX: Replaced v5 <Switch> with v6 <Routes> and updated Route syntax. */}
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/signup" element={<SignupPage />} />
+                    <Route path="/sim/:id" element={<SimDetailsPage />} />
+                    <Route path="/rond-numbers" element={<RondNumbersPage />} />
+                    <Route path="/auctions" element={<AuctionsPage />} />
+                    <Route path="/packages" element={<PackagesPage />} />
+                    
+                    <Route
+                      path="/admin/*"
+                      element={
+                        <PrivateRoute roles={['admin']}>
+                          <AdminDashboard />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/seller/*"
+                      element={
+                        <PrivateRoute roles={['seller']}>
+                          <SellerDashboard />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route
+                      path="/buyer/*"
+                      element={
+                        <PrivateRoute roles={['buyer']}>
+                          <BuyerDashboard />
+                        </PrivateRoute>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            </HashRouter>
+          </DataProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 
