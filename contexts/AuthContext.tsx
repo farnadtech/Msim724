@@ -20,8 +20,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(async () => {
-    // Let the onAuthStateChange listener handle setting the user to null.
-    // This makes it the single source of truth for auth state changes.
     const { error } = await supabase.auth.signOut();
     if (error) {
         console.error("Error signing out:", error);
@@ -30,38 +28,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const userProfile = await api.getUserProfile(session.user);
-          setUser(userProfile);
-        }
-      } catch (error) {
-        console.error("Error getting initial session:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
-
+    // onAuthStateChange is the single source of truth for the user's session.
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Wrap in try/catch to prevent unhandled promise rejections
       try {
-        if (event === 'SIGNED_IN' && session?.user) {
+        if (session?.user) {
+          // A session is active. Fetch the full user profile.
+          // If the profile doesn't exist (e.g., auth user but no public user row),
+          // getUserProfile will return null, correctly treating them as logged out within our app's context.
           const userProfile = await api.getUserProfile(session.user);
           setUser(userProfile);
-        } else if (event === 'SIGNED_OUT') {
+        } else {
+          // No active session, user is logged out.
           setUser(null);
         }
       } catch (error) {
-        console.error("Error in onAuthStateChange listener:", error);
-        // On error, assume user is not logged in.
-        setUser(null);
+        console.error("Error handling auth state change:", error);
+        setUser(null); // Ensure user is logged out on any error.
+      } finally {
+        // The auth state has been determined, stop loading.
+        // This is crucial for PrivateRoute to work correctly on refresh.
+        setLoading(false);
       }
     });
 
+    // Clean up the listener on unmount
     return () => {
       authListener.subscription.unsubscribe();
     };
@@ -76,18 +66,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (authUser) {
             const latestUserData = await api.getUserProfile(authUser);
-            if (latestUserData) {
-                setUser(latestUserData);
-            } else {
-                // User might have been deleted, so log them out
-                await logout();
-            }
+            // setUser can accept null, so if latestUserData is null, user logs out.
+            setUser(latestUserData);
+        } else {
+            // No auth user, so clear local user state.
+            setUser(null);
         }
     } catch (error) {
         console.error("Error refreshing user data:", error);
-        await logout(); // Log out if refresh fails
+        setUser(null); // Clear user on any error
     }
-  }, [logout]);
+  }, []);
 
 
   return (
