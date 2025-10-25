@@ -246,7 +246,8 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
 };
 
 // FIX: Moved NavItem component outside of BuyerDashboard to prevent re-creation on render and fix children prop error.
-const NavItem = ({ to, children, end = false }: { to: string, children: React.ReactNode, end?: boolean }) => (
+// FIX: Changed NavItem to be a React.FC to fix errors about missing 'children' property.
+const NavItem: React.FC<{ to: string, children: React.ReactNode, end?: boolean }> = ({ to, children, end = false }) => (
     <NavLink
         to={to}
         end={end}

@@ -20,6 +20,7 @@ import Footer from './components/Footer';
 import RondNumbersPage from './pages/RondNumbersPage';
 import AuctionsPage from './pages/AuctionsPage';
 import PackagesPage from './pages/PackagesPage';
+import CarrierSimsPage from './pages/CarrierSimsPage';
 
 // FIX: Cannot find namespace 'JSX'. Replaced JSX.Element with React.ReactElement.
 // FIX: Replaced v5 <Redirect> with v6 <Navigate>.
@@ -50,6 +51,7 @@ const App: React.FC = () => {
                     <Route path="/rond-numbers" element={<RondNumbersPage />} />
                     <Route path="/auctions" element={<AuctionsPage />} />
                     <Route path="/packages" element={<PackagesPage />} />
+                    <Route path="/carrier/:carrierName" element={<CarrierSimsPage />} />
                     
                     <Route
                       path="/admin/*"

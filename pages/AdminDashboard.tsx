@@ -398,7 +398,8 @@ const PackagePurchases = () => {
 };
 
 // FIX: Moved NavItem component outside of AdminDashboard to prevent re-creation on render and fix children prop error.
-const NavItem = ({ to, children, end = false }: { to: string, children: React.ReactNode, end?: boolean }) => (
+// FIX: Changed NavItem to be a React.FC to fix errors about missing 'children' property.
+const NavItem: React.FC<{ to: string, children: React.ReactNode, end?: boolean }> = ({ to, children, end = false }) => (
     <NavLink
         to={to}
         // FIX: The `end` prop and `className` function are v6 features.

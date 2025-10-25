@@ -19,6 +19,40 @@ const isRecentlySold = (sim: SimCardType) => {
     return sim.status === 'sold' && sim.soldDate && new Date(sim.soldDate).getTime() > Date.now() - 24 * 60 * 60 * 1000;
 };
 
+const CarrierSection: React.FC<{
+    title: string;
+    carrier: 'همراه اول' | 'ایرانسل' | 'رایتل';
+    simCards: SimCardType[];
+    viewAllLink: string;
+}> = ({ title, carrier, simCards, viewAllLink }) => {
+    
+    const carrierSims = useMemo(() => 
+        simCards
+        .filter(s => s.carrier === carrier && (s.status === 'available' || isRecentlySold(s)))
+        .slice(0, 4),
+    [simCards, carrier]);
+
+    if (carrierSims.length === 0) {
+        return null;
+    }
+
+    return (
+        <section className="mt-16">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{title}</h2>
+                <Link to={viewAllLink} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold">
+                    مشاهده همه
+                </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {carrierSims.map(sim => (
+                    <SimCard key={sim.id} sim={sim} />
+                ))}
+            </div>
+        </section>
+    );
+};
+
 const HomePage: React.FC = () => {
     const { simCards, loading } = useData();
     const { user } = useAuth();
@@ -142,6 +176,29 @@ const HomePage: React.FC = () => {
                         </div>
                     )}
                 </section>
+
+                {!loading && searchResults === null && (
+                    <>
+                        <CarrierSection 
+                            title="شماره های همراه اول"
+                            carrier="همراه اول"
+                            simCards={simCards}
+                            viewAllLink="/carrier/hamrah-aval"
+                        />
+                         <CarrierSection 
+                            title="شماره های ایرانسل"
+                            carrier="ایرانسل"
+                            simCards={simCards}
+                            viewAllLink="/carrier/irancell"
+                        />
+                         <CarrierSection 
+                            title="شماره های رایتل"
+                            carrier="رایتل"
+                            simCards={simCards}
+                            viewAllLink="/carrier/raytel"
+                        />
+                    </>
+                )}
                 
                 <section className="mt-20 text-center">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-10">
