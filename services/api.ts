@@ -1,250 +1,159 @@
-import { supabase } from './supabaseClient';
+
+import { db } from './firebase';
 import { User, SimCard, Package, Transaction, Bid } from '../types';
-import { users as mockUsers, simCards as mockSimCards, packages as mockPackages, transactions as mockTransactions } from '../data/mockData';
-import { User as AuthUser } from '@supabase/supabase-js';
+import { 
+    collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, writeBatch, setDoc 
+} from 'firebase/firestore';
+import { 
+    getAuth, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    sendPasswordResetEmail,
+    UserCredential
+} from 'firebase/auth';
 
-// Helper function to handle Supabase errors
-const handleSupabaseError = ({ error, data }: { error: any, data: any }, context: string) => {
-    if (error) {
-        console.error(`Error in ${context}:`, error);
-        // Ensure we always throw an Error with a clear string message,
-        // preventing "[object Object]" errors in the UI.
-        const message = error.message && typeof error.message === 'string'
-            ? error.message
-            : JSON.stringify(error);
-        throw new Error(`Supabase error during ${context}: ${message}`);
-    }
-    return data;
-};
-
+const auth = getAuth();
 
 // --- Auth and User Management ---
 
-const requestLoginOtp = async (identifier: string) => {
-    const isEmail = identifier.includes('@');
-    if (!isEmail) {
-        throw new Error('ورود فقط با ایمیل امکان پذیر است.');
-    }
-    
-    const { error } = await supabase.auth.signInWithOtp({
-        email: identifier,
-        options: {
-            shouldCreateUser: true, // Allow new users to sign up this way
-        },
+export const signup = async (email: string, password: string): Promise<UserCredential> => {
+    return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const createUserProfile = async (userId: string, data: Omit<User, 'id'>): Promise<void> => {
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(userDocRef, {
+        id: userId,
+        ...data
     });
-
-    if (error) {
-        console.error('Error requesting OTP:', error);
-        throw new Error('خطا در ارسال کد. لطفا دوباره تلاش کنید.');
-    }
 };
 
-const verifyOtpAndLogin = async (identifier: string, otp: string): Promise<User> => {
-    const isEmail = identifier.includes('@');
-    if (!isEmail) {
-        throw new Error('ورود فقط با ایمیل امکان پذیر است.');
-    }
-    const verificationData = { email: identifier, token: otp, type: 'email' as const };
-    
-    const { data: { session }, error } = await supabase.auth.verifyOtp(verificationData);
-
-    if (error || !session?.user) {
-        console.error('Error verifying OTP:', error);
-        throw new Error('کد تایید نامعتبر است یا منقضی شده.');
-    }
-
-    const userProfile = await getUserProfile(session.user);
-    if (!userProfile) {
-        // If they successfully authenticated but have no profile, they need to sign up.
-        // Sign them out to prevent a dangling auth session.
-        await supabase.auth.signOut();
-        throw new Error('پروفایل کاربری یافت نشد. لطفا ثبت نام کنید.');
-    }
-    return userProfile;
+export const login = async (email: string, password: string): Promise<void> => {
+    await signInWithEmailAndPassword(auth, email, password);
 };
 
-const verifyOtpAndRegister = async (registrationData: {
-    name: string;
-    identifier: string;
-    role: 'buyer' | 'seller';
-    otp: string;
-}): Promise<User> => {
-    const isEmail = registrationData.identifier.includes('@');
-    if (!isEmail) {
-        throw new Error('ثبت نام فقط با ایمیل امکان پذیر است.');
-    }
-    const verificationData = { email: registrationData.identifier, token: registrationData.otp, type: 'email' as const };
-        
-    const { data: { session }, error: verifyError } = await supabase.auth.verifyOtp(verificationData);
-
-    if (verifyError || !session?.user) {
-        throw new Error('کد تایید نامعتبر است یا منقضی شده.');
-    }
-
-    // After successful OTP verification, we ensure a profile exists and return it.
-    let userProfile = await getUserProfile(session.user);
-
-    // If profile does NOT exist, create it.
-    if (!userProfile) {
-        const newUserProfileData = {
-            id: session.user.id, // Use the UUID from auth.users as the primary key
-            name: registrationData.name,
-            role: registrationData.role,
-            email: registrationData.identifier,
-        };
-
-        const { data: newProfile, error: insertError } = await supabase
-            .from('users')
-            .insert([newUserProfileData])
-            .select()
-            .single();
-        
-        handleSupabaseError({ data: newProfile, error: insertError }, 'user registration');
-        userProfile = newProfile;
-    }
-    
-    if (!userProfile) {
-        // This should be an impossible state, but as a safeguard:
-        await supabase.auth.signOut();
-        throw new Error("خطا در ایجاد یا بازیابی پروفایل کاربری پس از ثبت نام.");
-    }
-
-    return userProfile;
+export const requestPasswordReset = async (email: string): Promise<void> => {
+    await sendPasswordResetEmail(auth, email);
 };
 
-
-const getUserProfile = async (authUser: AuthUser): Promise<User | null> => {
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-    
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "exact one row not found"
-        console.error("Error fetching user profile:", error);
-        throw new Error(error.message);
+export const getUserProfile = async (userId: string): Promise<User | null> => {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+        return userDoc.data() as User;
     }
-    return data;
+    return null;
 };
 
-const getUsers = async (): Promise<User[]> => {
-    const { data, error } = await supabase.from('users').select('*');
-    return handleSupabaseError({data, error}, 'fetching users');
+export const getUsers = async (): Promise<User[]> => {
+    const usersCol = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCol);
+    return userSnapshot.docs.map(doc => doc.data() as User);
 };
 
-const updateUser = async (userId: string, updatedData: Partial<User>): Promise<User> => {
-    const { data, error } = await supabase.from('users').update(updatedData).eq('id', userId).select().single();
-    return handleSupabaseError({ data, error }, `updating user ${userId}`);
+export const updateUser = async (userId: string, updatedData: Partial<User>): Promise<void> => {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, updatedData);
 };
 
-const updateUserPackage = async (userId: string, packageId: number): Promise<User> => {
-    const { data, error } = await supabase.from('users').update({ package_id: packageId }).eq('id', userId).select().single();
-    return handleSupabaseError({ data, error }, `updating package for user ${userId}`);
+export const updateUserPackage = async (userId: string, packageId: string): Promise<void> => {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { package_id: packageId });
 };
 
 // --- SIM Card Management ---
 
-const getSimCards = async (): Promise<SimCard[]> => {
-    const { data, error } = await supabase.from('sim_cards').select('*');
-    return handleSupabaseError({data, error}, 'fetching SIM cards');
+export const getSimCards = async (): Promise<SimCard[]> => {
+    const simCardsCol = collection(db, 'sim_cards');
+    const simCardSnapshot = await getDocs(simCardsCol);
+    return simCardSnapshot.docs.map(doc => doc.data() as SimCard);
 };
 
-const addSimCard = async (simData: Omit<SimCard, 'id' | 'seller_id' | 'status'>, sellerId: string) => {
-    const ROND_FEE = 5000;
-    
-    const { data: seller, error: sellerError } = await supabase.from('users').select('*, packages(*)' as '*').eq('id', sellerId).single();
-    if(sellerError || !seller) throw new Error('Seller not found.');
-
-    const { count, error: activeSimsError } = await supabase.from('sim_cards').select('id', { count: 'exact', head: true }).eq('seller_id', sellerId).eq('status', 'available');
-    if(activeSimsError) throw activeSimsError;
-    
-    const listingLimit = (seller as any).packages?.listing_limit ?? 0;
-    if ((count ?? 0) >= listingLimit) {
-        throw new Error(`شما به سقف ${listingLimit} آگهی فعال در پکیج خود رسیده اید.`);
-    }
-
-    if (simData.is_rond) {
-        if ((seller.wallet_balance || 0) < ROND_FEE) {
-            throw new Error(`موجودی برای ثبت سیمکارت رند کافی نیست. نیاز به ${ROND_FEE} تومان دارید.`);
-        }
-        await processTransaction(sellerId, -ROND_FEE, 'purchase', 'هزینه ثبت سیمکارت رند');
-    }
-
-    const newSimCardData = {
-        ...simData,
-        seller_id: sellerId,
-        status: 'available' as const
-    };
-    
-    const { data, error } = await supabase.from('sim_cards').insert([newSimCardData]).select().single();
-    return handleSupabaseError({ data, error }, 'adding new SIM card');
+export const addSimCard = async (simData: Omit<SimCard, 'id'>): Promise<string> => {
+    const simCardsCol = collection(db, 'sim_cards');
+    const docRef = await addDoc(simCardsCol, simData);
+    return docRef.id;
 };
 
-const updateSimCard = async (simId: number, updatedData: Partial<SimCard>): Promise<SimCard> => {
-    const { data, error } = await supabase.from('sim_cards').update(updatedData).eq('id', simId).select().single();
-    return handleSupabaseError({ data, error }, `updating sim card ${simId}`);
+export const updateSimCard = async (simId: string, updatedData: Partial<SimCard>): Promise<void> => {
+    const simCardDocRef = doc(db, 'sim_cards', simId);
+    await updateDoc(simCardDocRef, updatedData);
 };
 
 // --- Package Management ---
 
-const getPackages = async (): Promise<Package[]> => {
-    const { data, error } = await supabase.from('packages').select('*');
-    return handleSupabaseError({data, error}, 'fetching packages');
+export const getPackages = async (): Promise<Package[]> => {
+    const packagesCol = collection(db, 'packages');
+    const packageSnapshot = await getDocs(packagesCol);
+    return packageSnapshot.docs.map(doc => doc.data() as Package);
 };
 
-const addPackage = async (packageData: Omit<Package, 'id'>): Promise<Package> => {
-    const { data, error } = await supabase.from('packages').insert([packageData]).select().single();
-    return handleSupabaseError({ data, error }, 'adding new package');
+export const addPackage = async (packageData: Omit<Package, 'id'>): Promise<string> => {
+    const packagesCol = collection(db, 'packages');
+    const docRef = await addDoc(packagesCol, packageData);
+    return docRef.id;
 };
 
-const updatePackage = async (packageId: number, updatedData: Partial<Package>): Promise<Package> => {
-    const { data, error } = await supabase.from('packages').update(updatedData).eq('id', packageId).select().single();
-    return handleSupabaseError({ data, error }, `updating package ${packageId}`);
+export const updatePackage = async (packageId: string, updatedData: Partial<Package>): Promise<void> => {
+    const packageDocRef = doc(db, 'packages', packageId);
+    await updateDoc(packageDocRef, updatedData);
 };
 
 // --- Transaction & Financials ---
 
-const getTransactions = async (): Promise<Transaction[]> => {
-    const { data, error } = await supabase.from('transactions').select('*');
-    return handleSupabaseError({data, error}, 'fetching transactions');
+export const getTransactions = async (): Promise<Transaction[]> => {
+    const transactionsCol = collection(db, 'transactions');
+    const transactionSnapshot = await getDocs(transactionsCol);
+    return transactionSnapshot.docs.map(doc => doc.data() as Transaction);
 };
 
-const processTransaction = async (userId: string, amount: number, type: Transaction['type'], description: string): Promise<void> => {
-    const { data: user, error: userError } = await supabase.from('users').select('wallet_balance, blocked_balance').eq('id', userId).single();
-    if(userError) throw new Error("User not found for transaction.");
+export const processTransaction = async (userId: string, amount: number, type: Transaction['type'], description: string): Promise<void> => {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
 
-    const currentBalance = user.wallet_balance || 0;
+    if (!userDoc.exists()) {
+        throw new Error("User not found for transaction.");
+    }
+
+    const currentBalance = userDoc.data().wallet_balance || 0;
     if (amount < 0 && currentBalance < Math.abs(amount)) {
         throw new Error('موجودی کیف پول کافی نیست.');
     }
 
-    const { error: updateError } = await supabase.from('users').update({ wallet_balance: currentBalance + amount }).eq('id', userId);
-    if(updateError) throw new Error('Failed to update user balance.');
+    const newBalance = currentBalance + amount;
     
-    const newTransactionData = {
+    const transactionCol = collection(db, 'transactions');
+    const newTransactionRef = doc(transactionCol);
+
+    const batch = writeBatch(db);
+    batch.update(userDocRef, { wallet_balance: newBalance });
+    batch.set(newTransactionRef, {
         user_id: userId,
         type,
         amount,
         description,
         date: new Date().toISOString()
-    };
-    
-    const { error: transactionError } = await supabase.from('transactions').insert([newTransactionData]);
-    
-    if(transactionError) {
-        // Rollback the balance update if transaction recording fails
-        await supabase.from('users').update({ wallet_balance: currentBalance }).eq('id', userId);
-        console.error('Supabase transaction insert error:', transactionError);
-        throw new Error('Failed to record transaction.');
-    }
+    });
+
+    await batch.commit();
 };
 
-const purchaseSim = async (simId: number, buyerId: string): Promise<void> => {
-    const { data: sim, error: simError } = await supabase.from('sim_cards').select('*').eq('id', simId).single();
-    if(simError || !sim) throw new Error('SIM card not found.');
-    if(sim.status === 'sold') throw new Error('This SIM card has already been sold.');
+
+export const purchaseSim = async (simId: string, buyerId: string): Promise<void> => {
+    const simDocRef = doc(db, 'sim_cards', simId);
+    const simDoc = await getDoc(simDocRef);
+
+    if (!simDoc.exists()) {
+        throw new Error('SIM card not found.');
+    }
+
+    const sim = simDoc.data() as SimCard;
+    if (sim.status === 'sold') {
+        throw new Error('This SIM card has already been sold.');
+    }
 
     const price = sim.type === 'auction' && sim.auction_details ? sim.auction_details.current_bid : sim.price;
+
     if (sim.type === 'auction' && sim.auction_details?.highest_bidder_id !== buyerId) {
         throw new Error('Only the highest bidder can purchase this auctioned SIM.');
     }
@@ -253,103 +162,99 @@ const purchaseSim = async (simId: number, buyerId: string): Promise<void> => {
     await processTransaction(sim.seller_id, price, 'sale', `فروش سیمکارت ${sim.number}`);
 
     await updateSimCard(simId, { status: 'sold', sold_date: new Date().toISOString() });
-    
-    if (sim.type === 'auction' && sim.auction_details && sim.auction_details.bids.length > 0) {
-        const otherBidders = sim.auction_details.bids
-            .filter(b => b.user_id !== buyerId)
-            .reduce((acc, bid) => {
-                if (!acc[bid.user_id] || bid.amount > acc[bid.user_id]) {
-                    acc[bid.user_id] = bid.amount;
-                }
-                return acc;
-            }, {} as {[key: string]: number});
 
-        for (const [bidderId, blockedAmount] of Object.entries(otherBidders)) {
-            const { data: bidder } = await supabase.from('users').select('*').eq('id', bidderId).single();
-            if (bidder) {
-                await updateUser(bidderId, {
-                    wallet_balance: Number(bidder.wallet_balance || 0) + Number(blockedAmount),
-                    blocked_balance: Number(bidder.blocked_balance || 0) - Number(blockedAmount),
+    if (sim.type === 'auction' && sim.auction_details && sim.auction_details.bids.length > 0) {
+        const batch = writeBatch(db);
+        const otherBidders = sim.auction_details.bids.filter(b => b.user_id !== buyerId);
+
+        for (const bid of otherBidders) {
+            const bidderDocRef = doc(db, 'users', bid.user_id);
+            const bidderDoc = await getDoc(bidderDocRef);
+            if (bidderDoc.exists()) {
+                const bidder = bidderDoc.data() as User;
+                const newWalletBalance = (bidder.wallet_balance || 0) + bid.amount;
+                const newBlockedBalance = (bidder.blocked_balance || 0) - bid.amount;
+                batch.update(bidderDocRef, { 
+                    wallet_balance: newWalletBalance,
+                    blocked_balance: newBlockedBalance
                 });
             }
         }
+        await batch.commit();
     }
 };
 
-const placeBid = async (simId: number, bidderId: string, amount: number): Promise<void> => {
-    const { data: sim, error: simError } = await supabase.from('sim_cards').select('*').eq('id', simId).single();
-    if (simError || !sim || sim.type !== 'auction' || !sim.auction_details) throw new Error('Auction not found.');
-    if (new Date(sim.auction_details.end_time) < new Date()) throw new Error('این حراجی به پایان رسیده است.');
+export const placeBid = async (simId: string, bidderId: string, amount: number): Promise<void> => {
+    const simDocRef = doc(db, 'sim_cards', simId);
+    const simDoc = await getDoc(simDocRef);
+
+    if (!simDoc.exists() || simDoc.data().type !== 'auction' || !simDoc.data().auction_details) {
+        throw new Error('Auction not found.');
+    }
+
+    const sim = simDoc.data() as SimCard;
+    if (new Date(sim.auction_details.end_time) < new Date()) {
+        throw new Error('این حراجی به پایان رسیده است.');
+    }
 
     if (amount <= sim.auction_details.current_bid) {
         throw new Error(`پیشنهاد شما باید بیشتر از ${sim.auction_details.current_bid.toLocaleString('fa-IR')} تومان باشد.`);
     }
 
-    const { data: bidder, error: bidderError } = await supabase.from('users').select('*').eq('id', bidderId).single();
-    if (bidderError || !bidder) throw new Error('Bidder not found.');
-    
+    const bidderDocRef = doc(db, 'users', bidderId);
+    const bidderDoc = await getDoc(bidderDocRef);
+
+    if (!bidderDoc.exists()) {
+        throw new Error('Bidder not found.');
+    }
+
+    const bidder = bidderDoc.data() as User;
     if ((bidder.wallet_balance || 0) < amount) {
         throw new Error('موجودی کیف پول برای ثبت این پیشنهاد کافی نیست.');
     }
-    
+
+    const batch = writeBatch(db);
+
+    // Unblock previous highest bidder's funds
     const previousHighestBidderId = sim.auction_details.highest_bidder_id;
     if (previousHighestBidderId && previousHighestBidderId !== bidderId) {
-        const { data: prevBidder } = await supabase.from('users').select('*').eq('id', previousHighestBidderId).single();
-        if (prevBidder) {
+        const prevBidderDocRef = doc(db, 'users', previousHighestBidderId);
+        const prevBidderDoc = await getDoc(prevBidderDocRef);
+        if (prevBidderDoc.exists()) {
+            const prevBidder = prevBidderDoc.data() as User;
             const amountToUnblock = sim.auction_details.current_bid;
-            await updateUser(previousHighestBidderId, {
-                wallet_balance: Number(prevBidder.wallet_balance || 0) + amountToUnblock,
-                blocked_balance: Number(prevBidder.blocked_balance || 0) - amountToUnblock
+            batch.update(prevBidderDocRef, {
+                wallet_balance: (prevBidder.wallet_balance || 0) + amountToUnblock,
+                blocked_balance: (prevBidder.blocked_balance || 0) - amountToUnblock
             });
         }
     }
-    
-    await updateUser(bidderId, {
-        wallet_balance: Number(bidder.wallet_balance || 0) - amount,
-        blocked_balance: Number(bidder.blocked_balance || 0) + amount,
+
+    // Block new bidder's funds
+    batch.update(bidderDocRef, {
+        wallet_balance: (bidder.wallet_balance || 0) - amount,
+        blocked_balance: (bidder.blocked_balance || 0) + amount,
     });
-    
+
+    // Update sim card auction details
     const newBid: Bid = { user_id: bidderId, amount: amount, date: new Date().toISOString() };
     const updatedBids = [...sim.auction_details.bids, newBid];
-    
     const updatedAuctionDetails = {
         ...sim.auction_details,
         current_bid: amount,
         highest_bidder_id: bidderId,
         bids: updatedBids,
     };
-    
-    await updateSimCard(simId, { auction_details: updatedAuctionDetails });
-};
+    batch.update(simDocRef, { auction_details: updatedAuctionDetails });
 
-
-// --- Database Seeding ---
-
-const seedDatabase = async () => {
-    await supabase.from('transactions').delete().neq('id', 0);
-    await supabase.from('sim_cards').delete().neq('id', 0);
-    await supabase.from('users').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('packages').delete().neq('id', 0);
-
-    const { error: pkgError } = await supabase.from('packages').insert(mockPackages);
-    if(pkgError) throw pkgError;
-    
-    // In a real app, you would not seed users like this because the 'id' must match an auth.users.id
-    // But for this mock setup, we insert them so FK relationships in other tables work.
-    const { error: userError } = await supabase.from('users').insert(mockUsers);
-    if(userError) throw userError;
-
-    const { error: simError } = await supabase.from('sim_cards').insert(mockSimCards);
-    if(simError) throw simError;
-    
-    const { error: transError } = await supabase.from('transactions').insert(mockTransactions);
-    if(transError) throw transError;
+    await batch.commit();
 };
 
 const api = {
-    requestLoginOtp,
-    verifyOtpAndLogin,
-    verifyOtpAndRegister,
+    signup,
+    login,
+    requestPasswordReset,
+    createUserProfile,
     getUserProfile,
     getUsers,
     updateUser,
@@ -364,7 +269,6 @@ const api = {
     processTransaction,
     purchaseSim,
     placeBid,
-    seedDatabase,
 };
 
 export default api;
