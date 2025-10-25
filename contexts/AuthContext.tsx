@@ -10,6 +10,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null;
   logout: () => void;
   loading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,9 +20,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserProfile = async (firebaseUser: FirebaseUser) => {
+  const fetchUserProfile = useCallback(async (fbUser: FirebaseUser) => {
     try {
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDocRef = doc(db, 'users', fbUser.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         setUser(userDoc.data() as User);
@@ -34,13 +35,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setFirebaseUser(firebaseUser);
-      if (firebaseUser) {
-        fetchUserProfile(firebaseUser);
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser) {
+        fetchUserProfile(fbUser);
       } else {
         setUser(null);
         setLoading(false);
@@ -48,7 +49,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [fetchUserProfile]);
+  
+  const refreshUser = useCallback(async () => {
+    if (firebaseUser) {
+        setLoading(true);
+        await fetchUserProfile(firebaseUser);
+    }
+  }, [firebaseUser, fetchUserProfile]);
 
   const logout = useCallback(async () => {
     try {
@@ -59,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, logout, loading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
