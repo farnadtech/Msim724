@@ -45,8 +45,12 @@ async function seedDatabase() {
   console.log('Seeding simcards...');
   for (const simCard of simCards) {
     try {
-      // @ts-ignore
-      const docRef = await addDoc(collection(db, 'simcards'), simCard);
+      const { inquiry_phone_number, ...rest } = simCard;
+      const simCardData: any = rest;
+      if (inquiry_phone_number) {
+        simCardData.inquiry_phone_number = inquiry_phone_number;
+      }
+      const docRef = await addDoc(collection(db, 'simcards'), simCardData);
       console.log(`Added simcard ${simCard.number} with ID: ${docRef.id}`);
     } catch (e) {
       console.error('Error adding document: ', e);
