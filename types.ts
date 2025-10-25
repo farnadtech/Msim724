@@ -2,6 +2,7 @@ export type UserRole = 'admin' | 'seller' | 'buyer';
 
 export interface User {
   id: number;
+  authUserId?: string; // Links to supabase.auth.users.id
   name: string;
   role: UserRole;
   email?: string; // Now optional
@@ -9,9 +10,7 @@ export interface User {
   blockedBalance: number;
   phoneNumber?: string; // Already optional
   packageId?: number;
-  // Temporary fields for OTP verification simulation
-  otp?: string;
-  otpExpiry?: string;
+  // Temporary fields for OTP verification simulation are no longer needed
 }
 
 export type SimCardTypeOption = 'fixed' | 'auction' | 'inquiry';

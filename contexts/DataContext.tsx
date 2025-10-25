@@ -19,6 +19,7 @@ interface DataContextType {
   updateSimCard: (simId: string, updatedData: Partial<SimCard>) => Promise<void>;
   addPackage: (packageData: Omit<Package, 'id'>) => Promise<void>;
   updatePackage: (packageId: number, updatedData: Partial<Package>) => Promise<void>;
+  fetchData: () => Promise<void>;
 }
 
 export const DataContext = createContext<DataContextType>({
@@ -36,6 +37,7 @@ export const DataContext = createContext<DataContextType>({
     updateSimCard: async () => {},
     addPackage: async () => {},
     updatePackage: async () => {},
+    fetchData: async () => {},
 });
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -141,6 +143,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateSimCard,
     addPackage,
     updatePackage,
+    fetchData,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 // FIX: Upgrading react-router-dom from v5 to v6.
 import { NavLink, Route, Routes } from 'react-router-dom';
@@ -7,24 +5,70 @@ import DashboardLayout from '../components/DashboardLayout';
 import { useData } from '../hooks/useData';
 import { User, SimCard, Package } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
+import api from '../services/api';
+
+const AdminSeedNotice: React.FC<{ onSeeded: () => void }> = ({ onSeeded }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const { showNotification } = useNotification();
+
+    const handleSeed = async () => {
+        setIsLoading(true);
+        try {
+            await api.seedDatabase();
+            showNotification('پایگاه داده با موفقیت با داده های نمونه پر شد.', 'success');
+            onSeeded();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'خطای ناشناخته رخ داد.';
+            showNotification(`خطا در مقداردهی اولیه پایگاه داده: ${message}`, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="bg-yellow-50 dark:bg-yellow-900/50 p-6 rounded-lg shadow-md text-center border-l-4 border-yellow-500">
+             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-10 w-10 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5 8-5" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l8 5" />
+            </svg>
+            <h3 className="text-xl font-bold mt-2">راه اندازی اولیه</h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+                پایگاه داده شما خالی به نظر می رسد. برای شروع، می توانید آن را با داده های نمونه پر کنید.
+            </p>
+            <button
+                onClick={handleSeed}
+                disabled={isLoading}
+                className="mt-4 bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+            >
+                {isLoading ? 'در حال مقداردهی...' : 'مقداردهی اولیه با داده های نمونه'}
+            </button>
+        </div>
+    );
+};
+
 
 const AdminOverview = () => {
-    const { users, simCards, packages } = useData();
+    const { users, simCards, packages, loading, fetchData } = useData();
+    const needsSeeding = !loading && packages.length === 0 && simCards.length === 0;
+
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">داشبورد مدیر</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg text-center">
-                    <p className="text-3xl font-bold text-blue-800 dark:text-blue-300">{users.length}</p>
-                    <p className="text-blue-700 dark:text-blue-400">کل کاربران</p>
-                </div>
-                 <div className="bg-green-100 dark:bg-green-900 p-4 rounded-lg text-center">
-                    <p className="text-3xl font-bold text-green-800 dark:text-green-300">{simCards.length}</p>
-                    <p className="text-green-700 dark:text-green-400">کل سیمکارت ها</p>
-                </div>
-                 <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg text-center">
-                    <p className="text-3xl font-bold text-yellow-800 dark:text-yellow-300">{packages.length}</p>
-                    <p className="text-yellow-700 dark:text-yellow-400">کل پکیج ها</p>
+        <div className="space-y-6">
+            {needsSeeding && <AdminSeedNotice onSeeded={fetchData} />}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 className="text-2xl font-bold mb-4">داشبورد مدیر</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-blue-800 dark:text-blue-300">{users.length}</p>
+                        <p className="text-blue-700 dark:text-blue-400">کل کاربران</p>
+                    </div>
+                     <div className="bg-green-100 dark:bg-green-900 p-4 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-green-800 dark:text-green-300">{simCards.length}</p>
+                        <p className="text-green-700 dark:text-green-400">کل سیمکارت ها</p>
+                    </div>
+                     <div className="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg text-center">
+                        <p className="text-3xl font-bold text-yellow-800 dark:text-yellow-300">{packages.length}</p>
+                        <p className="text-yellow-700 dark:text-yellow-400">کل پکیج ها</p>
+                    </div>
                 </div>
             </div>
         </div>
