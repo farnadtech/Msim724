@@ -19,28 +19,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(async () => {
+    // Let the onAuthStateChange listener handle setting the user to null.
+    // This makes it the single source of truth for auth state changes.
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error("Error signing out:", error);
+    }
+  }, []);
+
+
   useEffect(() => {
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const userProfile = await api.getUserProfile(session.user.id);
-        setUser(userProfile);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const userProfile = await api.getUserProfile(session.user);
+          setUser(userProfile);
+        }
+      } catch (error) {
+        console.error("Error getting initial session:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getInitialSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // This listener handles magic link login automatically.
-      // When the user clicks the link, they are redirected, the supabase client
-      // picks up the session from the URL, and this event fires.
-      if (event === 'SIGNED_IN' && session?.user) {
-        const userProfile = await api.getUserProfile(session.user.id);
-        setUser(userProfile);
-        // If it's a new user, the profile might not exist yet.
-        // The SignupPage component will handle creating it.
-      } else if (event === 'SIGNED_OUT') {
+      // Wrap in try/catch to prevent unhandled promise rejections
+      try {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const userProfile = await api.getUserProfile(session.user);
+          setUser(userProfile);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error in onAuthStateChange listener:", error);
+        // On error, assume user is not logged in.
         setUser(null);
       }
     });
@@ -54,22 +71,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(user);
   };
   
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
-  
   const refreshUser = useCallback(async () => {
-    if (user && user.authUserId) {
-      const latestUserData = await api.getUserProfile(user.authUserId);
-      if (latestUserData) {
-          setUser(latestUserData);
-      } else {
-          // User might have been deleted, so log them out
-          await logout();
-      }
+    try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+            const latestUserData = await api.getUserProfile(authUser);
+            if (latestUserData) {
+                setUser(latestUserData);
+            } else {
+                // User might have been deleted, so log them out
+                await logout();
+            }
+        }
+    } catch (error) {
+        console.error("Error refreshing user data:", error);
+        await logout(); // Log out if refresh fails
     }
-  }, [user]);
+  }, [logout]);
 
 
   return (

@@ -13,10 +13,10 @@ const BuyerOverview = () => {
     const { simCards, transactions } = useData();
     if (!user) return null;
 
-    const purchaseTransactions = transactions.filter(t => t.userId === user.id && t.type === 'purchase' && t.description.startsWith('خرید سیمکارت'));
+    const purchaseTransactions = transactions.filter(t => t.user_id === user.id && t.type === 'purchase' && t.description.startsWith('خرید سیمکارت'));
     const purchasedSimCount = purchaseTransactions.length;
     
-    const myBids = simCards.filter(s => s.type === 'auction' && s.auctionDetails?.highestBidderId === user.id && s.status === 'available');
+    const myBids = simCards.filter(s => s.type === 'auction' && s.auction_details?.highest_bidder_id === user.id && s.status === 'available');
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -31,7 +31,7 @@ const BuyerOverview = () => {
                     <p className="text-green-700 dark:text-green-400">پیشنهادات فعال در حراجی</p>
                 </div>
                  <div className="bg-purple-100 dark:bg-purple-900 p-4 rounded-lg text-center">
-                    <p className="text-xl font-bold text-purple-800 dark:text-purple-300">{(user.walletBalance + user.blockedBalance).toLocaleString('fa-IR')}</p>
+                    <p className="text-xl font-bold text-purple-800 dark:text-purple-300">{((user.wallet_balance || 0) + (user.blocked_balance || 0)).toLocaleString('fa-IR')}</p>
                     <p className="text-purple-700 dark:text-purple-400">موجودی کل کیف پول (تومان)</p>
                 </div>
             </div>
@@ -44,7 +44,7 @@ const MyPurchases = () => {
     const { transactions } = useData();
     if (!user) return null;
 
-    const purchaseTransactions = transactions.filter(t => t.userId === user.id && t.type === 'purchase');
+    const purchaseTransactions = transactions.filter(t => t.user_id === user.id && t.type === 'purchase');
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -114,9 +114,9 @@ const MyBids = () => {
 
     const myBidAuctions = simCards.filter(s => 
         s.type === 'auction' && 
-        s.auctionDetails &&
-        new Date(s.auctionDetails.endTime) > new Date() &&
-        s.auctionDetails.bids.some(b => b.userId === user.id)
+        s.auction_details &&
+        new Date(s.auction_details.end_time) > new Date() &&
+        s.auction_details.bids.some(b => b.user_id === user.id)
     );
 
     if (loading) return <div>در حال بارگذاری...</div>;
@@ -127,21 +127,21 @@ const MyBids = () => {
             {myBidAuctions.length > 0 ? (
                 <div className="space-y-4">
                     {myBidAuctions.map(sim => {
-                        if (!sim.auctionDetails) return null;
-                        const isHighestBidder = sim.auctionDetails.highestBidderId === user.id;
-                        const myLastBid = sim.auctionDetails.bids.slice().reverse().find(b => b.userId === user.id);
-                        const highestBidder = users.find(u => u.id === sim.auctionDetails?.highestBidderId);
+                        if (!sim.auction_details) return null;
+                        const isHighestBidder = sim.auction_details.highest_bidder_id === user.id;
+                        const myLastBid = sim.auction_details.bids.slice().reverse().find(b => b.user_id === user.id);
+                        const highestBidder = users.find(u => u.id === sim.auction_details?.highest_bidder_id);
 
                         return (
                             <div key={sim.id} className="border dark:border-gray-700 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                                 <div className="flex-1">
                                     <p className="font-bold text-lg" style={{direction: 'ltr'}}>{sim.number}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">بالاترین پیشنهاد: {sim.auctionDetails.currentBid.toLocaleString('fa-IR')} تومان توسط {highestBidder ? highestBidder.name : 'کسی'}</p>
-                                     <CountdownTimer endTime={sim.auctionDetails.endTime} />
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">بالاترین پیشنهاد: {(sim.auction_details.current_bid || 0).toLocaleString('fa-IR')} تومان توسط {highestBidder ? highestBidder.name : 'کسی'}</p>
+                                     <CountdownTimer endTime={sim.auction_details.end_time} />
                                 </div>
                                 <div className="flex-1 text-center">
                                      <p className="text-sm">آخرین پیشنهاد شما</p>
-                                     <p className="font-bold">{myLastBid?.amount.toLocaleString('fa-IR')} تومان</p>
+                                     <p className="font-bold">{(myLastBid?.amount || 0).toLocaleString('fa-IR')} تومان</p>
                                 </div>
                                 <div className="flex-1 text-center">
                                     {isHighestBidder ? (
@@ -174,7 +174,7 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
     const [isLoading, setIsLoading] = useState(false);
 
     if (!user) return null;
-    const myTransactions = transactions.filter(t => t.userId === user.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const myTransactions = transactions.filter(t => t.user_id === user.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const handleOpenModal = (type: 'deposit' | 'withdrawal') => {
         setModalType(type);
@@ -202,9 +202,9 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
             <h2 className="text-2xl font-bold mb-4">کیف پول</h2>
             <div className="bg-blue-50 dark:bg-blue-900/50 p-4 rounded-lg mb-6 text-center">
                 <p className="text-gray-600 dark:text-gray-300">موجودی کل</p>
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{(user.walletBalance + user.blockedBalance).toLocaleString('fa-IR')} تومان</p>
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{((user.wallet_balance || 0) + (user.blocked_balance || 0)).toLocaleString('fa-IR')} تومان</p>
                 <div className="mt-2 text-sm">
-                    <span>قابل استفاده: {user.walletBalance.toLocaleString('fa-IR')}</span> | <span className="text-orange-600 dark:text-orange-400">بلوکه شده در حراجی: {user.blockedBalance.toLocaleString('fa-IR')}</span>
+                    <span>قابل استفاده: {(user.wallet_balance || 0).toLocaleString('fa-IR')}</span> | <span className="text-orange-600 dark:text-orange-400">بلوکه شده در حراجی: {(user.blocked_balance || 0).toLocaleString('fa-IR')}</span>
                 </div>
                 <div className="mt-4 flex justify-center space-x-4 space-x-reverse">
                     <button onClick={() => handleOpenModal('deposit')} className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">شارژ کیف پول</button>

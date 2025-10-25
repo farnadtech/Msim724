@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 // FIX: Replaced v5 `useHistory` with v6 `useNavigate` to resolve module export error.
 import { Link, useNavigate } from 'react-router-dom';
@@ -16,7 +17,7 @@ interface SearchCriteria {
 }
 
 const isRecentlySold = (sim: SimCardType) => {
-    return sim.status === 'sold' && sim.soldDate && new Date(sim.soldDate).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+    return sim.status === 'sold' && sim.sold_date && new Date(sim.sold_date).getTime() > Date.now() - 24 * 60 * 60 * 1000;
 };
 
 const CarrierSection: React.FC<{
@@ -94,7 +95,7 @@ const HomePage: React.FC = () => {
         return [...simCards]
             .filter(s => s.status === 'available' || isRecentlySold(s))
             .sort((a, b) => {
-                if (a.isRond !== b.isRond) return a.isRond ? -1 : 1;
+                if (a.is_rond !== b.is_rond) return a.is_rond ? -1 : 1;
                 if (a.type === 'auction' && b.type !== 'auction') return -1;
                 if (a.type !== 'auction' && b.type === 'auction') return 1;
                 return b.price - a.price; // Higher price first
@@ -135,7 +136,7 @@ const HomePage: React.FC = () => {
                                 type="submit"
                                 className="absolute left-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </button>

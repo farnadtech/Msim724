@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useData } from '../hooks/useData';
@@ -18,7 +19,7 @@ const CarrierSimsPage: React.FC = () => {
   const carrier = carrierName ? carrierSlugMap[carrierName] : undefined;
 
   const isRecentlySold = (sim: SimCardType) => {
-    return sim.status === 'sold' && sim.soldDate && new Date(sim.soldDate).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+    return sim.status === 'sold' && sim.sold_date && new Date(sim.sold_date).getTime() > Date.now() - 24 * 60 * 60 * 1000;
   };
 
   const carrierSims = useMemo(() => {

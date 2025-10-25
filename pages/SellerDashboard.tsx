@@ -12,10 +12,10 @@ const SellerOverview = () => {
     const { simCards, packages } = useData();
     if (!user) return null;
 
-    const mySims = simCards.filter(s => s.sellerId === user.id);
+    const mySims = simCards.filter(s => s.seller_id === user.id);
     const soldSims = mySims.filter(s => s.status === 'sold');
     const activeListings = mySims.filter(s => s.status === 'available');
-    const userPackage = packages.find(p => p.id === user.packageId);
+    const userPackage = packages.find(p => p.id === user.package_id);
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md space-y-6">
@@ -34,11 +34,11 @@ const SellerOverview = () => {
                 <p className="text-gray-600 dark:text-gray-300">کیف پول</p>
                 <div className="flex justify-around items-center mt-2">
                     <div>
-                        <span className="block text-xl font-bold text-purple-700 dark:text-purple-300">{user.walletBalance.toLocaleString('fa-IR')}</span>
+                        <span className="block text-xl font-bold text-purple-700 dark:text-purple-300">{(user.wallet_balance || 0).toLocaleString('fa-IR')}</span>
                         <span className="text-xs">موجودی قابل برداشت (تومان)</span>
                     </div>
                      <div>
-                        <span className="block text-xl font-bold text-orange-700 dark:text-orange-300">{user.blockedBalance.toLocaleString('fa-IR')}</span>
+                        <span className="block text-xl font-bold text-orange-700 dark:text-orange-300">{(user.blocked_balance || 0).toLocaleString('fa-IR')}</span>
                         <span className="text-xs">موجودی بلوکه شده (تومان)</span>
                     </div>
                 </div>
@@ -46,7 +46,7 @@ const SellerOverview = () => {
             {userPackage && (
                  <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                     <h3 className="font-bold">پکیج فعال شما: {userPackage.name}</h3>
-                    <p>شما می توانید تا {userPackage.listingLimit} آگهی همزمان داشته باشید.</p>
+                    <p>شما می توانید تا {userPackage.listing_limit} آگهی همزمان داشته باشید.</p>
                  </div>
             )}
         </div>
@@ -62,12 +62,12 @@ const MySimCards = () => {
     const [newPrice, setNewPrice] = useState('');
 
     if (!user) return null;
-    const mySims = simCards.filter(s => s.sellerId === user.id);
+    const mySims = simCards.filter(s => s.seller_id === user.id);
 
     const handleEditClick = (sim: SimCard) => {
         if (sim.type === 'inquiry') return;
         setEditingSim(sim);
-        const price = sim.type === 'auction' ? sim.auctionDetails?.currentBid : sim.price;
+        const price = sim.type === 'auction' ? sim.auction_details?.current_bid : sim.price;
         setNewPrice(String(price || ''));
         setEditModalOpen(true);
     };
@@ -84,9 +84,9 @@ const MySimCards = () => {
             let updateData: Partial<SimCard> = {};
             if (editingSim.type === 'fixed') {
                 updateData.price = priceValue;
-            } else if (editingSim.type === 'auction' && editingSim.auctionDetails) {
+            } else if (editingSim.type === 'auction' && editingSim.auction_details) {
                 // For auctions, you might want to add more logic, e.g., can't lower price if there are bids
-                updateData.auctionDetails = { ...editingSim.auctionDetails, currentBid: priceValue };
+                updateData.auction_details = { ...editingSim.auction_details, current_bid: priceValue };
             }
             await updateSimCard(editingSim.id, updateData);
             showNotification('قیمت با موفقیت بروزرسانی شد.', 'success');
@@ -116,7 +116,7 @@ const MySimCards = () => {
                         {mySims.map(sim => (
                             <tr key={sim.id} className="border-b dark:border-gray-700">
                                 <td className="p-3" style={{ direction: 'ltr' }}>{sim.number}</td>
-                                <td className="p-3">{ (sim.type === 'inquiry') ? 'توافقی' : (sim.type === 'auction' ? sim.auctionDetails?.currentBid : sim.price)?.toLocaleString('fa-IR') + ' تومان'}</td>
+                                <td className="p-3">{ (sim.type === 'inquiry') ? 'توافقی' : (((sim.type === 'auction' ? sim.auction_details?.current_bid : sim.price) || 0).toLocaleString('fa-IR') + ' تومان')}</td>
                                 <td className="p-3">{sim.type === 'fixed' ? 'مقطوع' : sim.type === 'auction' ? 'حراجی' : 'استعلامی'}</td>
                                 <td className="p-3">
                                     <span className={`px-2 py-1 text-xs rounded-full ${sim.status === 'available' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
@@ -171,7 +171,7 @@ const SellerWallet = ({ onTransaction }: { onTransaction: (amount: number, type:
     const [isLoading, setIsLoading] = useState(false);
 
     if (!user) return null;
-    const myTransactions = transactions.filter(t => t.userId === user.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const myTransactions = transactions.filter(t => t.user_id === user.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const handleOpenModal = (type: 'deposit' | 'withdrawal') => {
         setModalType(type);
@@ -199,9 +199,9 @@ const SellerWallet = ({ onTransaction }: { onTransaction: (amount: number, type:
             <h2 className="text-2xl font-bold mb-4">کیف پول</h2>
             <div className="bg-blue-50 dark:bg-blue-900/50 p-4 rounded-lg mb-6 text-center">
                  <p className="text-gray-600 dark:text-gray-300">موجودی کل</p>
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{(user.walletBalance + user.blockedBalance).toLocaleString('fa-IR')} تومان</p>
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{((user.wallet_balance || 0) + (user.blocked_balance || 0)).toLocaleString('fa-IR')} تومان</p>
                 <div className="mt-2 text-sm">
-                    <span>قابل برداشت: {user.walletBalance.toLocaleString('fa-IR')}</span> | <span className="text-orange-600 dark:text-orange-400">بلوکه شده: {user.blockedBalance.toLocaleString('fa-IR')}</span>
+                    <span>قابل برداشت: {(user.wallet_balance || 0).toLocaleString('fa-IR')}</span> | <span className="text-orange-600 dark:text-orange-400">بلوکه شده: {(user.blocked_balance || 0).toLocaleString('fa-IR')}</span>
                 </div>
                 <div className="mt-4 flex justify-center space-x-4 space-x-reverse">
                     <button onClick={() => handleOpenModal('deposit')} className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">شارژ کیف پول</button>
@@ -242,17 +242,17 @@ const SellerWallet = ({ onTransaction }: { onTransaction: (amount: number, type:
     );
 };
 
-const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'sellerId' | 'status'>) => Promise<void> }) => {
+const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'seller_id' | 'status'>) => Promise<void> }) => {
     const { user } = useAuth();
     const [saleType, setSaleType] = useState<SimCardTypeOption>('fixed');
     const [simData, setSimData] = useState({
         number: '',
         carrier: 'همراه اول',
         price: '',
-        isRond: false,
+        is_rond: false,
         startingBid: '',
         endTime: '',
-        inquiryPhoneNumber: '',
+        inquiry_phone_number: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const ROND_FEE = 5000;
@@ -262,8 +262,8 @@ const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'seller
         const { name, value, type } = e.target;
         const isCheckbox = type === 'checkbox';
 
-        if (name === 'isRond' && isCheckbox && (e.target as HTMLInputElement).checked) {
-            if (user && user.walletBalance < ROND_FEE) {
+        if (name === 'is_rond' && isCheckbox && (e.target as HTMLInputElement).checked) {
+            if (user && (user.wallet_balance || 0) < ROND_FEE) {
                 // This check is mostly redundant due to the 'disabled' prop, but serves as a safeguard.
                 return;
             }
@@ -279,17 +279,17 @@ const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'seller
         e.preventDefault();
         setIsLoading(true);
         
-        const simDataToSend: Omit<SimCard, 'id' | 'sellerId' | 'status'> = {
+        const simDataToSend: Omit<SimCard, 'id' | 'seller_id' | 'status'> = {
             number: simData.number,
             price: saleType === 'fixed' ? parseInt(simData.price, 10) || 0 : 0,
             type: saleType,
             carrier: simData.carrier as 'همراه اول' | 'ایرانسل' | 'رایتل',
-            isRond: simData.isRond,
-            inquiryPhoneNumber: saleType === 'inquiry' ? simData.inquiryPhoneNumber : undefined,
+            is_rond: simData.is_rond,
+            inquiry_phone_number: saleType === 'inquiry' ? simData.inquiry_phone_number : undefined,
             // FIX: Initialize `bids` as an empty array for new auctions to match the SimCard type.
-            auctionDetails: saleType === 'auction' ? {
-                endTime: new Date(simData.endTime).toISOString(),
-                currentBid: parseInt(simData.startingBid, 10) || 0,
+            auction_details: saleType === 'auction' ? {
+                end_time: new Date(simData.endTime).toISOString(),
+                current_bid: parseInt(simData.startingBid, 10) || 0,
                 bids: [],
             } : undefined
         };
@@ -300,10 +300,10 @@ const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'seller
                 number: '',
                 carrier: 'همراه اول',
                 price: '',
-                isRond: false,
+                is_rond: false,
                 startingBid: '',
                 endTime: '',
-                inquiryPhoneNumber: '',
+                inquiry_phone_number: '',
             });
             setSaleType('fixed');
         } catch (err) {
@@ -369,12 +369,12 @@ const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'seller
                                 <p>در این حالت، قیمت نمایش داده نمی شود و خریداران برای اطلاع از قیمت با شماره ثبت شده شما تماس خواهند گرفت.</p>
                             </div>
                             <div>
-                                <label htmlFor="inquiryPhoneNumber" className="block mb-2 font-medium">شماره تماس برای استعلام</label>
+                                <label htmlFor="inquiry_phone_number" className="block mb-2 font-medium">شماره تماس برای استعلام</label>
                                 <input 
                                     type="tel" 
-                                    name="inquiryPhoneNumber" 
-                                    id="inquiryPhoneNumber" 
-                                    value={simData.inquiryPhoneNumber} 
+                                    name="inquiry_phone_number" 
+                                    id="inquiry_phone_number" 
+                                    value={simData.inquiry_phone_number} 
                                     onChange={handleChange} 
                                     required 
                                     className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" 
@@ -389,16 +389,16 @@ const AddSimCard = ({ onAddSim }: { onAddSim: (sim: Omit<SimCard, 'id' | 'seller
                         <div className="flex items-center">
                             <input 
                                 type="checkbox" 
-                                name="isRond" 
-                                id="isRond" 
-                                checked={simData.isRond} 
+                                name="is_rond" 
+                                id="is_rond" 
+                                checked={simData.is_rond} 
                                 onChange={handleChange} 
                                 className="w-5 h-5 ml-3 rounded disabled:opacity-50" 
-                                disabled={user.walletBalance < ROND_FEE}
+                                disabled={(user.wallet_balance || 0) < ROND_FEE}
                             />
-                            <label htmlFor="isRond" className={`font-medium ${user.walletBalance < ROND_FEE ? 'text-gray-400' : ''}`}>شماره رند است</label>
+                            <label htmlFor="is_rond" className={`font-medium ${(user.wallet_balance || 0) < ROND_FEE ? 'text-gray-400' : ''}`}>شماره رند است</label>
                         </div>
-                        {user.walletBalance < ROND_FEE ? (
+                        {(user.wallet_balance || 0) < ROND_FEE ? (
                              <p className="text-xs text-red-500 mt-1">
                                 برای ثبت شماره به عنوان رند، نیاز به حداقل {ROND_FEE.toLocaleString('fa-IR')} تومان موجودی در کیف پول دارید. لطفا کیف پول خود را شارژ کنید.
                             </p>
@@ -447,7 +447,7 @@ const BuyPackage = ({ onBuyPackage }: { onBuyPackage: (pkg: Package) => Promise<
     };
     
     if (!user) return null;
-    const hasSufficientFunds = selectedPackage ? user.walletBalance >= selectedPackage.price : false;
+    const hasSufficientFunds = selectedPackage ? (user.wallet_balance || 0) >= selectedPackage.price : false;
 
 
     return (
@@ -455,16 +455,16 @@ const BuyPackage = ({ onBuyPackage }: { onBuyPackage: (pkg: Package) => Promise<
             <h2 className="text-2xl font-bold mb-6">خرید و ارتقاء پکیج</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {packages.map((pkg) => {
-                    const isCurrentUserPackage = user.packageId === pkg.id;
+                    const isCurrentUserPackage = user.package_id === pkg.id;
                     return (
                         <div key={pkg.id} className={`rounded-xl shadow-lg p-8 flex flex-col text-center transition-transform transform hover:scale-105 border-4 ${isCurrentUserPackage ? 'border-green-500' : 'border-transparent'}`}>
                             {isCurrentUserPackage && <div className="bg-green-500 text-white text-sm font-bold py-1 px-3 rounded-full -mt-10 mb-4 self-center">پکیج فعلی شما</div>}
                             <h3 className="text-2xl font-bold mb-2">{pkg.name}</h3>
                             <p className="text-gray-500 dark:text-gray-400 mb-6">{pkg.description}</p>
                             <p className="text-4xl font-extrabold mb-2">{new Intl.NumberFormat('fa-IR').format(pkg.price)}<span className="text-lg font-normal"> تومان</span></p>
-                            <p className="text-gray-500 dark:text-gray-400 mb-6">{pkg.durationDays} روز اعتبار</p>
+                            <p className="text-gray-500 dark:text-gray-400 mb-6">{pkg.duration_days} روز اعتبار</p>
                             <ul className="text-right space-y-3 mb-8 flex-grow">
-                                <li className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 text-green-500" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>تا {pkg.listingLimit} آگهی همزمان</li>
+                                <li className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 text-green-500" viewBox="http://www.w3.org/2000/svg" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>تا {pkg.listing_limit} آگهی همزمان</li>
                             </ul>
                             <button onClick={() => handleSelectPackage(pkg)} disabled={isCurrentUserPackage} className={`w-full py-3 font-bold rounded-lg transition-colors ${isCurrentUserPackage ? 'bg-gray-400 text-gray-800 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                                 {isCurrentUserPackage ? 'فعال' : 'انتخاب پکیج'}
@@ -479,7 +479,7 @@ const BuyPackage = ({ onBuyPackage }: { onBuyPackage: (pkg: Package) => Promise<
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
                         <h3 className="text-xl font-bold mb-4">تایید خرید پکیج</h3>
                         <p className="mb-2">شما در حال خرید <span className="font-bold">{selectedPackage.name}</span> به قیمت <span className="font-bold">{selectedPackage.price.toLocaleString('fa-IR')} تومان</span> هستید.</p>
-                        <p className="mb-6">موجودی فعلی شما: <span className="font-bold">{user.walletBalance.toLocaleString('fa-IR')} تومان</span></p>
+                        <p className="mb-6">موجودی فعلی شما: <span className="font-bold">{(user.wallet_balance || 0).toLocaleString('fa-IR')} تومان</span></p>
 
                         {!hasSufficientFunds && (
                             <div className="bg-red-100 dark:bg-red-900/50 border-r-4 border-red-500 text-red-700 dark:text-red-300 p-4 mb-4" role="alert">
@@ -522,7 +522,7 @@ const SellerDashboard: React.FC = () => {
     const navigate = useNavigate();
     const { showNotification } = useNotification();
 
-    const handleAddNewSim = async (simData: Omit<SimCard, 'id' | 'sellerId' | 'status'>) => {
+    const handleAddNewSim = async (simData: Omit<SimCard, 'id' | 'seller_id' | 'status'>) => {
         try {
             await addSimCard(simData);
             showNotification('سیمکارت شما با موفقیت ثبت شد.', 'success');

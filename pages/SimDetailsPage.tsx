@@ -62,10 +62,15 @@ const SimDetailsPage: React.FC = () => {
 
     useEffect(() => {
         if (!loading && id) {
-            const foundSim = simCards.find(s => s.id === id);
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId)) {
+                navigate('/');
+                return;
+            }
+            const foundSim = simCards.find(s => s.id === numericId);
             if (foundSim) {
                 setSim(foundSim);
-                const foundSeller = users.find(u => u.id === foundSim.sellerId);
+                const foundSeller = users.find(u => u.id === foundSim.seller_id);
                 setSeller(foundSeller || null);
             } else {
                 navigate('/');
@@ -87,7 +92,7 @@ const SimDetailsPage: React.FC = () => {
             navigate('/login');
             return;
         }
-        if (sim.sellerId === currentUser.id) {
+        if (sim.seller_id === currentUser.id) {
             showNotification('شما نمی توانید سیمکارت خود را بخرید.', 'error');
             return;
         }
@@ -124,7 +129,7 @@ const SimDetailsPage: React.FC = () => {
             navigate('/login');
             return;
         }
-        if (sim.sellerId === currentUser.id) {
+        if (sim.seller_id === currentUser.id) {
             showNotification('شما نمی توانید روی سیمکارت خود پیشنهاد ثبت کنید.', 'error');
             return;
         }
@@ -148,17 +153,17 @@ const SimDetailsPage: React.FC = () => {
     };
 
     const handleCallSeller = () => {
-        if (sim?.inquiryPhoneNumber) {
+        if (sim?.inquiry_phone_number) {
             setShowInquiryNumber(true);
-            window.location.href = `tel:${sim.inquiryPhoneNumber}`;
+            window.location.href = `tel:${sim.inquiry_phone_number}`;
         } else {
             showNotification('شماره تماس برای این آگهی ثبت نشده است.', 'error');
         }
     };
 
-    const isAuctionEnded = sim.type === 'auction' && sim.auctionDetails && new Date(sim.auctionDetails.endTime) < new Date();
-    const finalPrice = sim.type === 'auction' && sim.auctionDetails ? sim.auctionDetails.currentBid : sim.price;
-    const highestBidder = sim.auctionDetails?.highestBidderId ? users.find(u => u.id === sim.auctionDetails!.highestBidderId) : null;
+    const isAuctionEnded = sim.type === 'auction' && sim.auction_details && new Date(sim.auction_details.end_time) < new Date();
+    const finalPrice = (sim.type === 'auction' && sim.auction_details ? sim.auction_details.current_bid : sim.price) || 0;
+    const highestBidder = sim.auction_details?.highest_bidder_id ? users.find(u => u.id === sim.auction_details!.highest_bidder_id) : null;
     
     return (
         <div className="container mx-auto px-4 py-12">
@@ -168,7 +173,7 @@ const SimDetailsPage: React.FC = () => {
                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${sim.carrier === 'همراه اول' ? 'bg-blue-100 text-blue-800' : sim.carrier === 'ایرانسل' ? 'bg-yellow-100 text-yellow-800' : 'bg-purple-100 text-purple-800'}`}>
                             {sim.carrier}
                         </span>
-                        {sim.isRond && <span className="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">رند</span>}
+                        {sim.is_rond && <span className="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">رند</span>}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold text-center tracking-widest my-8 dark:text-white" style={{ direction: 'ltr' }}>
                         {sim.number.slice(0, 4)} - {sim.number.slice(4, 7)} - {sim.number.slice(7)}
@@ -183,7 +188,7 @@ const SimDetailsPage: React.FC = () => {
                         <div className="text-center">
                             <h2 className="text-2xl font-bold text-red-600">فروخته شده</h2>
                         </div>
-                    ) : sim.type === 'auction' && sim.auctionDetails ? (
+                    ) : sim.type === 'auction' && sim.auction_details ? (
                         <div className="space-y-6">
                             <div className="text-center">
                                 <p className="text-gray-500 dark:text-gray-400">بالاترین پیشنهاد</p>
@@ -192,7 +197,7 @@ const SimDetailsPage: React.FC = () => {
                             </div>
                             <div className="text-center text-gray-800 dark:text-gray-200">
                                 <p className="mb-2">زمان باقیمانده تا پایان حراجی:</p>
-                                <CountdownTimer endTime={sim.auctionDetails.endTime} />
+                                <CountdownTimer endTime={sim.auction_details.end_time} />
                             </div>
                             {!isAuctionEnded ? (
                                 <div>
@@ -227,9 +232,9 @@ const SimDetailsPage: React.FC = () => {
                              <p className="text-gray-500 dark:text-gray-400">قیمت توافقی</p>
                              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 my-2">برای اطلاع از قیمت تماس بگیرید</p>
                             <button onClick={handleCallSeller} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 flex items-center justify-center space-x-2 space-x-reverse">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                {showInquiryNumber && sim.inquiryPhoneNumber ? (
-                                    <span className="text-lg tracking-widest" style={{direction: 'ltr'}}>{sim.inquiryPhoneNumber}</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                {showInquiryNumber && sim.inquiry_phone_number ? (
+                                    <span className="text-lg tracking-widest" style={{direction: 'ltr'}}>{sim.inquiry_phone_number}</span>
                                 ) : (
                                     <span>تماس با فروشنده</span>
                                 )}
@@ -239,7 +244,7 @@ const SimDetailsPage: React.FC = () => {
                         <div className="space-y-6">
                             <div className="text-center">
                                 <p className="text-gray-500 dark:text-gray-400">قیمت مقطوع</p>
-                                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 my-2">{sim.price.toLocaleString('fa-IR')} تومان</p>
+                                <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 my-2">{(sim.price || 0).toLocaleString('fa-IR')} تومان</p>
                             </div>
                             <button onClick={handlePurchaseClick} disabled={isProcessing} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
                                 {isProcessing ? 'در حال پردازش...' : 'خرید آنی'}
@@ -254,7 +259,7 @@ const SimDetailsPage: React.FC = () => {
                         <h3 className="text-xl font-bold mb-4">تایید خرید</h3>
                         <p className="mb-2">آیا از خرید سیمکارت به شماره زیر اطمینان دارید؟</p>
                         <p className="font-bold text-2xl tracking-wider mb-4" style={{direction: 'ltr'}}>{sim.number}</p>
-                        <p className="mb-6">به قیمت: <span className="font-bold">{sim.price.toLocaleString('fa-IR')} تومان</span></p>
+                        <p className="mb-6">به قیمت: <span className="font-bold">{(sim.price || 0).toLocaleString('fa-IR')} تومان</span></p>
 
                         <div className="flex justify-center space-x-4 space-x-reverse">
                             <button onClick={() => setConfirmModalOpen(false)} className="bg-gray-300 dark:bg-gray-600 px-6 py-2 rounded-lg" disabled={isProcessing}>

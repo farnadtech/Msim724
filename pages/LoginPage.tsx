@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -8,11 +6,12 @@ import { useNotification } from '../contexts/NotificationContext';
 
 const LoginPage: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [linkSent, setLinkSent] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   
-  const { user } = useAuth();
+  const { user, setCurrentUser } = useAuth();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
@@ -22,15 +21,15 @@ const LoginPage: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const handleRequestLink = async (e: React.FormEvent) => {
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    setLinkSent(false);
+    setOtpSent(false);
     try {
       await api.requestLoginOtp(identifier);
-      setLinkSent(true);
-      showNotification(`لینک ورود به ${identifier} ارسال شد.`, 'info');
+      setOtpSent(true);
+      showNotification(`کد ورود به ${identifier} ارسال شد.`, 'info');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'خطای ناشناخته');
     } finally {
@@ -38,44 +37,70 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true); // Stays true on success until navigation
+    try {
+      const profile = await api.verifyOtpAndLogin(identifier, otp);
+      setCurrentUser(profile);
+      showNotification('با موفقیت وارد شدید. در حال انتقال...', 'success');
+      // The useEffect listening to `user` will now handle navigation
+    } catch (err) {
+       setError(err instanceof Error ? err.message : 'کد وارد شده صحیح نیست.');
+       setIsLoading(false); // Set loading to false ONLY on error
+    }
+  }
+
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex items-center justify-center py-16 sm:py-24">
       <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <h1 className="text-2xl font-bold text-center">ورود به Msim724</h1>
         
-        {!linkSent ? (
-          <form onSubmit={handleRequestLink} className="space-y-6">
+        {!otpSent ? (
+          <form onSubmit={handleRequestOtp} className="space-y-6">
             <div>
-              <label htmlFor="identifier" className="block mb-2 text-sm font-medium">ایمیل یا شماره موبایل</label>
+              <label htmlFor="identifier" className="block mb-2 text-sm font-medium">ایمیل</label>
               <input
-                type="text"
+                type="email"
                 id="identifier"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring focus:ring-blue-200 dark:bg-gray-700"
-                placeholder="0912... یا user@example.com"
+                placeholder="user@example.com"
                 required
                 disabled={isLoading}
               />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <button type="submit" className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400" disabled={isLoading}>
-              {isLoading ? 'در حال ارسال...' : 'ارسال لینک ورود'}
+              {isLoading ? 'در حال ارسال...' : 'ارسال کد ورود'}
             </button>
           </form>
         ) : (
-          <div className="text-center space-y-4">
-             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M12 12a4 4 0 100-8 4 4 0 000 8z" />
-            </svg>
-            <h2 className="text-xl font-semibold">ایمیل خود را بررسی کنید</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              لینک ورود به ایمیل <span className="font-bold">{identifier}</span> ارسال شد. لطفاً روی لینک کلیک کنید تا وارد حساب کاربری خود شوید.
-            </p>
-             <button type="button" onClick={() => {setLinkSent(false); setError('');}} className="w-full text-sm text-center text-blue-600 hover:underline" disabled={isLoading}>
-                ارسال مجدد یا ویرایش ایمیل/شماره
+          <form onSubmit={handleVerifyOtp} className="space-y-6">
+            <p className="text-center text-sm">کد ۶ رقمی ارسال شده به <span className="font-bold">{identifier}</span> را وارد کنید.</p>
+            <div>
+              <label htmlFor="otp" className="block mb-2 text-sm font-medium">کد تایید</label>
+              <input
+                type="text"
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full px-3 py-2 text-center tracking-[1em] border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring focus:ring-blue-200 dark:bg-gray-700"
+                maxLength={6}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button type="submit" className="w-full px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400" disabled={isLoading}>
+              {isLoading ? 'در حال بررسی...' : 'ورود'}
             </button>
-          </div>
+             <button type="button" onClick={() => {setOtpSent(false); setError('');}} className="w-full text-sm text-center text-blue-600 hover:underline" disabled={isLoading}>
+                ویرایش ایمیل
+            </button>
+          </form>
         )}
         <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">

@@ -27,7 +27,7 @@ const AdminSeedNotice: React.FC<{ onSeeded: () => void }> = ({ onSeeded }) => {
 
     return (
         <div className="bg-yellow-50 dark:bg-yellow-900/50 p-6 rounded-lg shadow-md text-center border-l-4 border-yellow-500">
-             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-10 w-10 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-10 w-10 text-yellow-600" fill="none" viewBox="0 0 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7l8 5 8-5" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l8 5" />
             </svg>
@@ -84,13 +84,13 @@ const ManageUsers = () => {
 
     const handleEditClick = (user: User) => {
         setEditingUser(user);
-        setFormData({ name: user.name, email: user.email, role: user.role, walletBalance: user.walletBalance });
+        setFormData({ name: user.name, email: user.email, role: user.role, wallet_balance: user.wallet_balance });
         setModalOpen(true);
     };
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'walletBalance' ? parseInt(value) : value }));
+        setFormData(prev => ({ ...prev, [name]: name === 'wallet_balance' ? parseInt(value) : value }));
     };
     
     const handleSave = async () => {
@@ -125,7 +125,7 @@ const ManageUsers = () => {
                                 <td className="p-3">{user.name}</td>
                                 <td className="p-3">{user.email}</td>
                                 <td className="p-3">{user.role}</td>
-                                <td className="p-3">{user.walletBalance.toLocaleString('fa-IR')} تومان</td>
+                                <td className="p-3">{(user.wallet_balance || 0).toLocaleString('fa-IR')} تومان</td>
                                 <td className="p-3">
                                     <button onClick={() => handleEditClick(user)} className="bg-yellow-500 text-white px-3 py-1 rounded-md hover:bg-yellow-600 text-sm">ویرایش</button>
                                 </td>
@@ -158,7 +158,7 @@ const ManageUsers = () => {
                             </div>
                              <div>
                                 <label className="block mb-1">موجودی کیف پول</label>
-                                <input type="number" name="walletBalance" value={formData.walletBalance || 0} onChange={handleFormChange} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700" />
+                                <input type="number" name="wallet_balance" value={formData.wallet_balance || 0} onChange={handleFormChange} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700" />
                             </div>
                         </div>
                         <div className="mt-6 flex justify-end space-x-3 space-x-reverse">
@@ -181,7 +181,7 @@ const ManageSimCards = () => {
 
     const handleEditClick = (sim: SimCard) => {
         setEditingSim(sim);
-        const price = sim.type === 'auction' ? sim.auctionDetails?.currentBid : sim.price;
+        const price = sim.type === 'auction' ? sim.auction_details?.current_bid : sim.price;
         setFormData({ status: sim.status, price: price });
         setModalOpen(true);
     };
@@ -195,8 +195,8 @@ const ManageSimCards = () => {
         if (!editingSim || formData.price === undefined) return;
         try {
             let dataToUpdate: Partial<SimCard> = { status: formData.status };
-            if (editingSim.type === 'auction' && editingSim.auctionDetails) {
-                dataToUpdate.auctionDetails = { ...editingSim.auctionDetails, currentBid: formData.price };
+            if (editingSim.type === 'auction' && editingSim.auction_details) {
+                dataToUpdate.auction_details = { ...editingSim.auction_details, current_bid: formData.price };
             } else {
                 dataToUpdate.price = formData.price;
             }
@@ -227,8 +227,8 @@ const ManageSimCards = () => {
                         {simCards.map(sim => (
                             <tr key={sim.id} className="border-b dark:border-gray-700">
                                 <td className="p-3" style={{direction: 'ltr'}}>{sim.number}</td>
-                                <td className="p-3">{users.find(u => u.id === sim.sellerId)?.name}</td>
-                                <td className="p-3">{(sim.type === 'auction' ? sim.auctionDetails?.currentBid : sim.price)?.toLocaleString('fa-IR')} تومان</td>
+                                <td className="p-3">{users.find(u => u.id === sim.seller_id)?.name}</td>
+                                <td className="p-3">{((sim.type === 'auction' ? sim.auction_details?.current_bid : sim.price) || 0).toLocaleString('fa-IR')} تومان</td>
                                 <td className="p-3">{sim.status === 'available' ? 'موجود' : 'فروخته شده'}</td>
                                 <td className="p-3">
                                     <button onClick={() => handleEditClick(sim)} className="bg-yellow-500 text-white px-3 py-1 rounded-md hover:bg-yellow-600 text-sm">ویرایش</button>
@@ -276,10 +276,10 @@ const ManagePackages = () => {
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [editingPackage, setEditingPackage] = useState<Package | null>(null); // null for new, Package object for editing
     const [formData, setFormData] = useState<Omit<Package, 'id'>>({
-        name: '', price: 0, durationDays: 30, listingLimit: 5, description: ''
+        name: '', price: 0, duration_days: 30, listing_limit: 5, description: ''
     });
 
-    const buyers = viewingPackage ? users.filter(u => u.packageId === viewingPackage.id) : [];
+    const buyers = viewingPackage ? users.filter(u => u.package_id === viewingPackage.id) : [];
 
     const handleViewBuyers = (pkg: Package) => {
         setViewingPackage(pkg);
@@ -288,19 +288,19 @@ const ManagePackages = () => {
 
     const handleOpenAddModal = () => {
         setEditingPackage(null);
-        setFormData({ name: '', price: 0, durationDays: 30, listingLimit: 5, description: '' });
+        setFormData({ name: '', price: 0, duration_days: 30, listing_limit: 5, description: '' });
         setEditModalOpen(true);
     };
 
     const handleOpenEditModal = (pkg: Package) => {
         setEditingPackage(pkg);
-        setFormData({ name: pkg.name, price: pkg.price, durationDays: pkg.durationDays, listingLimit: pkg.listingLimit, description: pkg.description });
+        setFormData({ name: pkg.name, price: pkg.price, duration_days: pkg.duration_days, listing_limit: pkg.listing_limit, description: pkg.description });
         setEditModalOpen(true);
     };
     
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'price' || name === 'durationDays' || name === 'listingLimit' ? parseInt(value) || 0 : value }));
+        setFormData(prev => ({ ...prev, [name]: name === 'price' || name === 'duration_days' || name === 'listing_limit' ? parseInt(value) || 0 : value }));
     };
 
     const handleSave = async () => {
@@ -331,8 +331,8 @@ const ManagePackages = () => {
                         <div>
                             <h3 className="font-bold text-lg">{pkg.name}</h3>
                             <p>قیمت: {pkg.price.toLocaleString('fa-IR')} تومان</p>
-                            <p>مدت: {pkg.durationDays} روز</p>
-                            <p>تعداد آگهی: {pkg.listingLimit} عدد</p>
+                            <p>مدت: {pkg.duration_days} روز</p>
+                            <p>تعداد آگهی: {pkg.listing_limit} عدد</p>
                         </div>
                         <div className="mt-4 flex space-x-2 space-x-reverse">
                              <button onClick={() => handleViewBuyers(pkg)} className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-sm">مشاهده خریداران</button>
@@ -378,11 +378,11 @@ const ManagePackages = () => {
                                 </div>
                                 <div>
                                     <label className="block mb-1">مدت (روز)</label>
-                                    <input type="number" name="durationDays" value={formData.durationDays} onChange={handleFormChange} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700" />
+                                    <input type="number" name="duration_days" value={formData.duration_days} onChange={handleFormChange} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700" />
                                 </div>
                                 <div>
                                     <label className="block mb-1">تعداد آگهی</label>
-                                    <input type="number" name="listingLimit" value={formData.listingLimit} onChange={handleFormChange} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700" />
+                                    <input type="number" name="listing_limit" value={formData.listing_limit} onChange={handleFormChange} className="w-full px-3 py-2 border rounded-md dark:bg-gray-700" />
                                 </div>
                             </div>
                              <div>
@@ -424,7 +424,7 @@ const PackagePurchases = () => {
                     </thead>
                     <tbody>
                         {packageTransactions.map(t => {
-                             const user = users.find(u => u.id === t.userId);
+                             const user = users.find(u => u.id === t.user_id);
                              return (
                                 <tr key={t.id} className="border-b dark:border-gray-700">
                                     <td className="p-3">{user ? user.name : 'کاربر حذف شده'}</td>

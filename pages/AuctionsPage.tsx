@@ -7,7 +7,7 @@ const AuctionsPage: React.FC = () => {
   const { simCards, loading } = useData();
   
   const isRecentlySold = (sim: SimCardType) => {
-    return sim.status === 'sold' && sim.soldDate && new Date(sim.soldDate).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+    return sim.status === 'sold' && sim.sold_date && new Date(sim.sold_date).getTime() > Date.now() - 24 * 60 * 60 * 1000;
   };
 
   const auctionSims = simCards.filter(s => s.type === 'auction' && (s.status === 'available' || isRecentlySold(s)));

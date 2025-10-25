@@ -99,7 +99,7 @@ const SimCard: React.FC<SimCardProps> = ({ sim }) => {
           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getCarrierColor(sim.carrier)}`}>
             {sim.carrier}
           </span>
-          {sim.isRond && (
+          {sim.is_rond && (
             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
               رند
             </span>
@@ -108,11 +108,11 @@ const SimCard: React.FC<SimCardProps> = ({ sim }) => {
         <h3 className="text-2xl font-bold text-center tracking-widest text-gray-800 dark:text-gray-100 mb-4" style={{direction: 'ltr'}}>
           {sim.number.slice(0, 4)} - {sim.number.slice(4, 7)} - {sim.number.slice(7)}
         </h3>
-        {sim.type === 'auction' && sim.auctionDetails ? (
+        {sim.type === 'auction' && sim.auction_details ? (
           <div className="text-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
             <p className="text-sm text-gray-500 dark:text-gray-400">بالاترین پیشنهاد</p>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatPrice(sim.auctionDetails.currentBid)} تومان</p>
-            <CountdownTimer endTime={sim.auctionDetails.endTime} />
+            <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatPrice(sim.auction_details.current_bid || 0)} تومان</p>
+            <CountdownTimer endTime={sim.auction_details.end_time} />
           </div>
         ) : sim.type === 'inquiry' ? (
            <div className="text-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
@@ -122,7 +122,7 @@ const SimCard: React.FC<SimCardProps> = ({ sim }) => {
         ) : (
           <div className="text-center bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
             <p className="text-sm text-gray-500 dark:text-gray-400">قیمت مقطوع</p>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatPrice(sim.price)} تومان</p>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatPrice(sim.price || 0)} تومان</p>
           </div>
         )}
       </div>

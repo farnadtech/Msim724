@@ -7,10 +7,10 @@ const RondNumbersPage: React.FC = () => {
   const { simCards, loading } = useData();
   
   const isRecentlySold = (sim: SimCardType) => {
-    return sim.status === 'sold' && sim.soldDate && new Date(sim.soldDate).getTime() > Date.now() - 24 * 60 * 60 * 1000;
+    return sim.status === 'sold' && sim.sold_date && new Date(sim.sold_date).getTime() > Date.now() - 24 * 60 * 60 * 1000;
   };
 
-  const rondSims = simCards.filter(s => s.isRond && (s.status === 'available' || isRecentlySold(s)));
+  const rondSims = simCards.filter(s => s.is_rond && (s.status === 'available' || isRecentlySold(s)));
 
   return (
     <div className="container mx-auto px-6 py-12">

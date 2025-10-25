@@ -10,13 +10,13 @@ interface DataContextType {
   packages: Package[];
   transactions: Transaction[];
   loading: boolean;
-  addSimCard: (simData: Omit<SimCard, 'id' | 'sellerId' | 'status'>) => Promise<void>;
-  purchaseSim: (simId: string, buyerId: number) => Promise<void>;
-  placeBid: (simId: string, bidderId: number, amount: number) => Promise<void>;
-  processTransaction: (userId: number, amount: number, type: Transaction['type'], description: string) => Promise<void>;
-  updateUserPackage: (userId: number, packageId: number) => Promise<void>;
-  updateUser: (userId: number, updatedData: Partial<User>) => Promise<void>;
-  updateSimCard: (simId: string, updatedData: Partial<SimCard>) => Promise<void>;
+  addSimCard: (simData: Omit<SimCard, 'id' | 'seller_id' | 'status'>) => Promise<void>;
+  purchaseSim: (simId: number, buyerId: string) => Promise<void>;
+  placeBid: (simId: number, bidderId: string, amount: number) => Promise<void>;
+  processTransaction: (userId: string, amount: number, type: Transaction['type'], description: string) => Promise<void>;
+  updateUserPackage: (userId: string, packageId: number) => Promise<void>;
+  updateUser: (userId: string, updatedData: Partial<User>) => Promise<void>;
+  updateSimCard: (simId: number, updatedData: Partial<SimCard>) => Promise<void>;
   addPackage: (packageData: Omit<Package, 'id'>) => Promise<void>;
   updatePackage: (packageId: number, updatedData: Partial<Package>) => Promise<void>;
   fetchData: () => Promise<void>;
@@ -74,7 +74,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchData();
   }, [fetchData]);
 
-  const addSimCard = async (simData: Omit<SimCard, 'id' | 'sellerId' | 'status'>) => {
+  const addSimCard = async (simData: Omit<SimCard, 'id' | 'seller_id' | 'status'>) => {
     if (!user) {
         throw new Error('برای ثبت سیمکارت باید وارد شوید.');
     }
@@ -83,37 +83,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await refreshUser(); // Refresh user data in AuthContext to reflect balance changes
   };
   
-  const processTransaction = async (userId: number, amount: number, type: Transaction['type'], description: string) => {
+  const processTransaction = async (userId: string, amount: number, type: Transaction['type'], description: string) => {
     await api.processTransaction(userId, amount, type, description);
     await fetchData();
     // Refresh user in auth context separately to ensure header/etc. are updated immediately
     await refreshUser();
   };
   
-  const updateUserPackage = async (userId: number, packageId: number) => {
+  const updateUserPackage = async (userId: string, packageId: number) => {
     await api.updateUserPackage(userId, packageId);
     await fetchData();
     await refreshUser();
   };
   
-   const purchaseSim = async (simId: string, buyerId: number) => {
+   const purchaseSim = async (simId: number, buyerId: string) => {
     await api.purchaseSim(simId, buyerId);
     await fetchData();
     await refreshUser();
   };
 
-  const placeBid = async (simId: string, bidderId: number, amount: number) => {
+  const placeBid = async (simId: number, bidderId: string, amount: number) => {
     await api.placeBid(simId, bidderId, amount);
     await fetchData();
     await refreshUser();
   };
 
-  const updateUser = async (userId: number, updatedData: Partial<User>) => {
+  const updateUser = async (userId: string, updatedData: Partial<User>) => {
     await api.updateUser(userId, updatedData);
     await fetchData();
   }
 
-  const updateSimCard = async (simId: string, updatedData: Partial<SimCard>) => {
+  const updateSimCard = async (simId: number, updatedData: Partial<SimCard>) => {
     await api.updateSimCard(simId, updatedData);
     await fetchData();
   }

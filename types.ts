@@ -1,41 +1,40 @@
 export type UserRole = 'admin' | 'seller' | 'buyer';
 
 export interface User {
-  id: number;
-  authUserId?: string; // Links to supabase.auth.users.id
+  id: string;
   name: string;
   role: UserRole;
   email?: string; // Now optional
-  walletBalance: number;
-  blockedBalance: number;
+  wallet_balance?: number;
+  blocked_balance?: number;
   phoneNumber?: string; // Already optional
-  packageId?: number;
+  package_id?: number;
   // Temporary fields for OTP verification simulation are no longer needed
 }
 
 export type SimCardTypeOption = 'fixed' | 'auction' | 'inquiry';
 
 export interface Bid {
-  userId: number;
+  user_id: string;
   amount: number;
   date: string;
 }
 
 export interface SimCard {
-  id: string;
+  id: number;
   number: string;
   price: number;
-  sellerId: number;
+  seller_id: string;
   type: SimCardTypeOption;
   status: 'available' | 'sold';
-  soldDate?: string;
+  sold_date?: string;
   carrier: 'همراه اول' | 'ایرانسل' | 'رایتل';
-  isRond: boolean;
-  inquiryPhoneNumber?: string;
-  auctionDetails?: {
-    endTime: string;
-    currentBid: number;
-    highestBidderId?: number;
+  is_rond: boolean;
+  inquiry_phone_number?: string;
+  auction_details?: {
+    end_time: string;
+    current_bid: number;
+    highest_bidder_id?: string;
     bids: Bid[];
   };
 }
@@ -44,14 +43,14 @@ export interface Package {
   id: number;
   name: string;
   price: number;
-  durationDays: number;
-  listingLimit: number;
+  duration_days: number;
+  listing_limit: number;
   description: string;
 }
 
 export interface Transaction {
     id: number;
-    userId: number;
+    user_id: string;
     type: 'deposit' | 'withdrawal' | 'purchase' | 'sale';
     amount: number;
     date: string;
