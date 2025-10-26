@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import AdminDashboard from './pages/AdminDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
@@ -48,12 +49,13 @@ const AppContent: React.FC = () => {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/sim/:id" element={<SimDetailsPage />} />
               <Route path="/rond-numbers" element={<RondNumbersPage />} />
               <Route path="/auctions" element={<AuctionsPage />} />
               <Route path="/packages" element={<PackagesPage />} />
               <Route path="/carrier/:carrierName" element={<CarrierSimsPage />} />
-              
+
               <Route
                 path="/admin/*"
                 element={

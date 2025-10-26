@@ -67,6 +67,11 @@ const LoginPage: React.FC = () => {
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="text-sm text-center">
+            <Link to="/forgot-password" className="font-medium text-blue-600 hover:underline">
+              رمز عبور خود را فراموش کرده اید؟
+            </Link>
+          </div>
           <button type="submit" className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400" disabled={isLoading}>
             {isLoading ? 'در حال ورود...' : 'ورود'}
           </button>
