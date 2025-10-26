@@ -6,6 +6,7 @@ import { useData } from '../hooks/useData';
 import { User, SimCard, Package } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
 import api from '../services/api';
+import AdminPaymentReceipts from './AdminPaymentReceipts';
 
 const AdminSeedNotice: React.FC<{ onSeeded: () => void }> = ({ onSeeded }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -469,6 +470,7 @@ const AdminDashboard: React.FC = () => {
         <NavItem to="simcards">مدیریت سیمکارت ها</NavItem>
         <NavItem to="packages">مدیریت پکیج ها</NavItem>
         <NavItem to="purchases">خرید پکیج ها</NavItem>
+        <NavItem to="receipts">رسیدهای پرداخت</NavItem>
       </nav>
     </div>
   );
@@ -482,6 +484,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="simcards" element={<ManageSimCards />} />
             <Route path="packages" element={<ManagePackages />} />
             <Route path="purchases" element={<PackagePurchases />} />
+            <Route path="receipts" element={<AdminPaymentReceipts />} />
         </Routes>
     </DashboardLayout>
   );

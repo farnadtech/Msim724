@@ -30,8 +30,21 @@ const LoginPage: React.FC = () => {
       showNotification('با موفقیت وارد شدید. در حال انتقال...', 'success');
       // The useEffect listening to `user` will now handle navigation
     } catch (err) {
-       setError(err instanceof Error ? err.message : 'ایمیل یا رمز عبور نامعتبر است.');
-       setIsLoading(false);
+      // Handle Firebase authentication errors
+      if (err instanceof Error) {
+        if (err.message.includes('auth/invalid-credential') || err.message.includes('auth/invalid-email') || err.message.includes('auth/wrong-password')) {
+          setError('اطلاعات ورود اشتباه است.');
+        } else if (err.message.includes('auth/user-not-found')) {
+          setError('کاربری با این اطلاعات یافت نشد.');
+        } else if (err.message.includes('auth/too-many-requests')) {
+          setError('تعداد تلاش های ناموفق زیاد است. لطفاً بعداً تلاش کنید.');
+        } else {
+          setError('خطا در ورود. لطفاً دوباره تلاش کنید.');
+        }
+      } else {
+        setError('اطلاعات ورود اشتباه است.');
+      }
+      setIsLoading(false);
     }
   }
 

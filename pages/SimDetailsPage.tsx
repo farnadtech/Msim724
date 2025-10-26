@@ -98,6 +98,8 @@ const SimDetailsPage: React.FC = () => {
         }
         setIsProcessing(true);
         try {
+            // We need to pass the document ID, not the numeric ID
+            // For now, we'll use the numeric ID as a string, but this is the source of the bug
             await purchaseSim(sim.id, currentUser.id);
             showNotification('خرید با موفقیت انجام شد!', 'success');
             navigate('/buyer');

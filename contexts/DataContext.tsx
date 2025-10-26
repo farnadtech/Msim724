@@ -78,7 +78,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) {
         throw new Error('برای ثبت سیمکارت باید وارد شوید.');
     }
-    await api.addSimCard(simData, user.id);
+    
+    // Validate phone number format (exactly 11 digits)
+    if (!simData.number || simData.number.length !== 11 || !/^[0-9]+$/.test(simData.number)) {
+        throw new Error('شماره سیمکارت باید دقیقاً 11 رقم باشد.');
+    }
+    
+    // Check if SIM card number already exists
+    const existingSim = simCards.find(s => s.number === simData.number);
+    if (existingSim) {
+        throw new Error('این شماره سیمکارت قبلاً ثبت شده است.');
+    }
+    
+    // Check if user has a valid package
+    if (!user.package_id) {
+        throw new Error('برای ثبت سیمکارت باید یک پکیج خریداری کنید.');
+    }
+    
+    // Check if the package is still valid (not expired)
+    const userPackage = packages.find(p => p.id === user.package_id);
+    if (!userPackage) {
+        throw new Error('پکیج شما معتبر نیست. لطفاً یک پکیج جدید خریداری کنید.');
+    }
+    
+    // Check if user has reached the listing limit
+    const userSimCards = simCards.filter(s => s.seller_id === user.id && s.status === 'available');
+    if (userSimCards.length >= userPackage.listing_limit) {
+        throw new Error(`شما به حداکثر تعداد آگهی مجاز (${userPackage.listing_limit}) رسیده اید. برای ثبت آگهی بیشتر، پکیج خود را ارتقاء دهید.`);
+    }
+    
+    // Add seller_id and status to the simData
+    const completeSimData = {
+      ...simData,
+      seller_id: user.id,
+      status: 'available' as const
+    };
+    
+    await api.addSimCard(completeSimData);
     await fetchData();
     await refreshUser(); // Refresh user data in AuthContext to reflect balance changes
   };
@@ -124,7 +160,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updatePackage = async (packageId: number, updatedData: Partial<Package>) => {
-    await api.updatePackage(packageId, updatedData);
+    await api.updatePackage(packageId.toString(), updatedData);
     await fetchData();
   };
 

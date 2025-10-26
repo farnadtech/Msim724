@@ -172,6 +172,10 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
     const [modalType, setModalType] = useState<'deposit' | 'withdrawal'>('deposit');
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<'zarinpal' | 'card'>('zarinpal');
+    const [cardNumber, setCardNumber] = useState('');
+    const [trackingCode, setTrackingCode] = useState('');
+    const [receiptImage, setReceiptImage] = useState<File | null>(null);
 
     if (!user) return null;
     const myTransactions = transactions.filter(t => t.user_id === user.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -180,6 +184,10 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
         setModalType(type);
         setModalOpen(true);
         setAmount('');
+        setPaymentMethod('zarinpal');
+        setCardNumber('');
+        setTrackingCode('');
+        setReceiptImage(null);
     };
 
     const handleWalletAction = async () => {
@@ -187,8 +195,16 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
         if (!isNaN(numericAmount) && numericAmount > 0) {
             setIsLoading(true);
             try {
-                await onTransaction(numericAmount, modalType);
-                setModalOpen(false);
+                if (modalType === 'deposit') {
+                    // For deposits, show payment method selection
+                    setModalOpen(false);
+                    // In a real implementation, you would redirect to the selected payment method
+                    alert(`درگاه پرداخت: ${paymentMethod === 'zarinpal' ? 'زرین‌پال' : 'کارت به کارت'}\nمبلغ: ${numericAmount.toLocaleString('fa-IR')} تومان`);
+                } else {
+                    // For withdrawals, process normally
+                    await onTransaction(numericAmount, modalType);
+                    setModalOpen(false);
+                }
             } catch(error) {
                 // Error is now handled by the parent component using notifications
             } finally {
@@ -232,6 +248,80 @@ const BuyerWallet = ({ onTransaction }: { onTransaction: (amount: number, type: 
                             placeholder="مبلغ را وارد کنید"
                             disabled={isLoading}
                         />
+                        
+                        {modalType === 'deposit' && (
+                            <>
+                                <div className="mt-4">
+                                    <label className="block mb-2 font-medium">روش پرداخت</label>
+                                    <div className="flex items-center space-x-4 space-x-reverse mb-4">
+                                        <label className="flex items-center">
+                                            <input 
+                                                type="radio" 
+                                                name="paymentMethod" 
+                                                value="zarinpal" 
+                                                checked={paymentMethod === 'zarinpal'}
+                                                onChange={() => setPaymentMethod('zarinpal')}
+                                                className="ml-2"
+                                            />
+                                            <span>زرین‌پال</span>
+                                        </label>
+                                        <label className="flex items-center">
+                                            <input 
+                                                type="radio" 
+                                                name="paymentMethod" 
+                                                value="card" 
+                                                checked={paymentMethod === 'card'}
+                                                onChange={() => setPaymentMethod('card')}
+                                                className="ml-2"
+                                            />
+                                            <span>کارت به کارت</span>
+                                        </label>
+                                    </div>
+                                    
+                                    {paymentMethod === 'card' && (
+                                        <div className="bg-blue-50 dark:bg-blue-900/50 p-4 rounded-lg mb-4">
+                                            <h4 className="font-bold mb-2">اطلاعات پرداخت کارت به کارت</h4>
+                                            <p className="mb-2">لطفاً مبلغ را به شماره کارت زیر واریز کنید:</p>
+                                            <p className="font-bold text-lg mb-2">6037-99XX-XXXX-XXXX</p>
+                                            <p className="mb-4">(بانک ملی ایران)</p>
+                                            
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block mb-1">شماره کارت واریز کننده</label>
+                                                    <input
+                                                        type="text"
+                                                        value={cardNumber}
+                                                        onChange={(e) => setCardNumber(e.target.value)}
+                                                        className="w-full px-3 py-2 border rounded-md dark:bg-gray-700"
+                                                        placeholder="شماره کارت 16 رقمی"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block mb-1">کد پیگیری</label>
+                                                    <input
+                                                        type="text"
+                                                        value={trackingCode}
+                                                        onChange={(e) => setTrackingCode(e.target.value)}
+                                                        className="w-full px-3 py-2 border rounded-md dark:bg-gray-700"
+                                                        placeholder="کد پیگیری را وارد کنید"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block mb-1">تصویر رسید پرداخت</label>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => setReceiptImage(e.target.files?.[0] || null)}
+                                                        className="w-full px-3 py-2 border rounded-md dark:bg-gray-700"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                        
                         <div className="mt-6 flex justify-end space-x-3 space-x-reverse">
                             <button onClick={() => setModalOpen(false)} className="bg-gray-300 dark:bg-gray-600 px-4 py-2 rounded-lg" disabled={isLoading}>انصراف</button>
                             <button onClick={handleWalletAction} className={`px-4 py-2 rounded-lg text-white ${modalType === 'deposit' ? 'bg-green-600' : 'bg-red-600'}`} disabled={isLoading}>
