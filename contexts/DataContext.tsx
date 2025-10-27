@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { User, SimCard, Package, Transaction } from '../types';
-import api from '../services/api';
+import api from '../services/api-supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useNotification } from './NotificationContext';
 
@@ -160,7 +160,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updatePackage = async (packageId: number, updatedData: Partial<Package>) => {
-    await api.updatePackage(packageId.toString(), updatedData);
+    await api.updatePackage(packageId, updatedData);
     await fetchData();
   };
 

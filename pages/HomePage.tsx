@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../hooks/useData';
 import SimCard from '../components/SimCard';
 import AdvancedSearch from '../components/AdvancedSearch';
+// Test components removed
 import { SimCard as SimCardType } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
@@ -211,6 +212,7 @@ const HomePage: React.FC = () => {
                     </div>
                 </section>
             </div>
+{/* Test components removed */}
         </div>
     );
 };
