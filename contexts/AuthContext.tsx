@@ -1,7 +1,8 @@
 
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, db } from '../services/firebase';
+import { auth } from '../services/firebase';
+import { db } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { User } from '../types';
 
